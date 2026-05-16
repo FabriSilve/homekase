@@ -52,7 +52,7 @@ Inspired by [Omakub](https://github.com/basecamp/omakub).
 
 ```bash
 ssh youruser@192.168.x.x
-bash <(curl -fsSL https://raw.githubusercontent.com/you/homekase/main/setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/FabriSilve/homekase/main/setup.sh)
 ```
 
 The script will guide you through:

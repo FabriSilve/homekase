@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO_URL="https://github.com/you/homekase.git"
+REPO_URL="https://github.com/FabriSilve/homekase.git"
 
 # If running via curl | bash, clone the repo first
 if [ ! -d "$(dirname "$0")/lib" ]; then

@@ -1,6 +1,6 @@
 function homekase -d "Manage your homekase homelab"
     set -l HOMELAB_DIR /opt/homelab
-    set -l REPO_URL "https://github.com/you/homekase.git"
+    set -l REPO_URL "https://github.com/FabriSilve/homekase.git"
     set -l URLS_FILE "$HOMELAB_DIR/urls.txt"
 
     switch "$argv[1]"
