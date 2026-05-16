@@ -24,6 +24,30 @@ done
 
 ensure_root
 
+DRY_RUN=false
+for arg in "$@"; do
+  if [ "$arg" = "--dry-run" ] || [ "$arg" = "--check" ]; then
+    DRY_RUN=true
+  fi
+done
+
+if $DRY_RUN; then
+  # Override destructive commands in dry-run mode
+  apt() { echo -e "${YELLOW}[DRY-RUN]${NC} apt $*"; }
+  docker() { echo -e "${YELLOW}[DRY-RUN]${NC} docker $*"; }
+  curl() { echo -e "${YELLOW}[DRY-RUN]${NC} curl $*"; }
+  git() { echo -e "${YELLOW}[DRY-RUN]${NC} git $*"; }
+  pvcreate() { echo -e "${YELLOW}[DRY-RUN]${NC} pvcreate $*"; }
+  vgcreate() { echo -e "${YELLOW}[DRY-RUN]${NC} vgcreate $*"; }
+  lvcreate() { echo -e "${YELLOW}[DRY-RUN]${NC} lvcreate $*"; }
+  mkfs.ext4() { echo -e "${YELLOW}[DRY-RUN]${NC} mkfs.ext4 $*"; }
+  mount() { echo -e "${YELLOW}[DRY-RUN]${NC} mount $*"; }
+  ufw() { echo -e "${YELLOW}[DRY-RUN]${NC} ufw $*"; }
+  chsh() { echo -e "${YELLOW}[DRY-RUN]${NC} chsh $*"; }
+  chown() { :; }
+  systemctl() { echo -e "${YELLOW}[DRY-RUN]${NC} systemctl $*"; }
+fi
+
 main() {
   echo ""
   echo -e "${BOLD}┌─────────────────────────────────────────┐${NC}"

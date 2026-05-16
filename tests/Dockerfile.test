@@ -1,0 +1,43 @@
+FROM ubuntu:24.04
+
+RUN apt update && apt install -y git curl sudo && \
+    useradd -m -s /bin/bash testuser && \
+    echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+COPY . /homekase
+
+RUN chown -R testuser:testuser /homekase
+
+# Run the setup in dry-run mode first
+RUN cd /homekase && sudo bash setup.sh --dry-run || true
+
+# Validate key checks that don't require destructive ops
+RUN bash -c '
+  set -euo pipefail
+  source /homekase/lib/common.sh
+  source /homekase/lib/system.sh
+  source /homekase/lib/tools.sh
+
+  echo "=== Validation ==="
+
+  # Verify is_installed works
+  is_installed bash || { echo "FAIL: is_installed bash"; exit 1; }
+  echo "  ✓ is_installed"
+
+  # Verify dir_exists works
+  dir_exists /tmp || { echo "FAIL: dir_exists /tmp"; exit 1; }
+  echo "  ✓ dir_exists"
+
+  # Verify is_dpkg_installed works on real packages
+  is_dpkg_installed apt || { echo "FAIL: is_dpkg_installed apt"; exit 1; }
+  echo "  ✓ is_dpkg_installed"
+
+  # Verify file_exists works
+  file_exists /etc/passwd || { echo "FAIL: file_exists /etc/passwd"; exit 1; }
+  echo "  ✓ file_exists"
+
+  echo ""
+  echo "All validation checks passed!"
+'
+
+CMD ["bash"]

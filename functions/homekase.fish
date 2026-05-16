@@ -98,21 +98,19 @@ function __homekase_create_app -a app_name
         set -l org (echo $repo_url | sed 's|https://github.com/||' | sed 's|/.*||')
         set -l runner_name "$app_name-runner"
 
-        cat >> "$runner_compose" << RUNNER_EOF
-
-  $runner_name:
-    image: myoung34/github-runner:latest
-    container_name: $runner_name
-    restart: unless-stopped
-    environment:
-      - REPO_URL=$repo_url
-      - RUNNER_TOKEN=$runner_token
-      - RUNNER_LABELS=homelab
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - traefik-net
-RUNNER_EOF
+        echo "" >> "$runner_compose"
+        echo "  $runner_name:" >> "$runner_compose"
+        echo "    image: myoung34/github-runner:latest" >> "$runner_compose"
+        echo "    container_name: $runner_name" >> "$runner_compose"
+        echo "    restart: unless-stopped" >> "$runner_compose"
+        echo "    environment:" >> "$runner_compose"
+        echo "      - REPO_URL=$repo_url" >> "$runner_compose"
+        echo "      - RUNNER_TOKEN=$runner_token" >> "$runner_compose"
+        echo "      - RUNNER_LABELS=homelab" >> "$runner_compose"
+        echo "    volumes:" >> "$runner_compose"
+        echo "      - /var/run/docker.sock:/var/run/docker.sock" >> "$runner_compose"
+        echo "    networks:" >> "$runner_compose"
+        echo "      - traefik-net" >> "$runner_compose"
 
         docker compose -f "$runner_compose" up -d $runner_name 2>/dev/null
         echo "  ✓ GitHub runner registered"
