@@ -3,10 +3,17 @@ set -euo pipefail
 
 REPO_URL="https://github.com/FabriSilve/homekase.git"
 
+# Must run as root — check early for clear feedback
+if [ "$(whoami)" != "root" ]; then
+  echo "This script must be run as root."
+  echo "Try: curl -fsSL https://raw.githubusercontent.com/FabriSilve/homekase/main/setup.sh | sudo bash"
+  exit 1
+fi
+
 # If running via curl | bash, clone the repo first
 if [ ! -d "$(dirname "$0")/lib" ]; then
   echo ":: Downloading homekase..."
-  sudo apt update -qq && sudo apt install -y -qq git
+  apt update -qq && apt install -y -qq git
   TEMP_DIR=$(mktemp -d)
   git clone --depth=1 "$REPO_URL" "$TEMP_DIR" 2>/dev/null || {
     echo "Failed to clone repository"
@@ -21,8 +28,6 @@ for lib in "$SCRIPT_DIR"/lib/*.sh; do
   # shellcheck disable=SC1090
   source "$lib"
 done
-
-ensure_root
 
 DRY_RUN=false
 for arg in "$@"; do
