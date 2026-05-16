@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{APP_NAME}} — homekase</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; background: #0f172a; color: #e2e8f0;
+    }
+    .card {
+      background: #1e293b; border-radius: 12px; padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align: center;
+    }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #94a3b8; margin-bottom: 1.5rem; }
+    .status { padding: 0.75rem; border-radius: 8px; background: #334155; }
+    .status.ok { border-left: 4px solid #22c55e; }
+    .status.err { border-left: 4px solid #ef4444; }
+    a { color: #60a5fa; }
+    .info { margin-top: 1.5rem; font-size: 0.85rem; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>{{APP_NAME}}</h1>
+    <p class="subtitle">Running on homekase</p>
+    <div id="status" class="status">Checking connection...</div>
+    <div class="info">
+      <p>API: <a href="/api/hello">/api/hello</a></p>
+      <p>Health: <a href="/health">/health</a></p>
+    </div>
+  </div>
+  <script>
+    fetch('/api/hello')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('status').className = 'status ok';
+        document.getElementById('status').textContent = 'API connected — ' + d.message;
+      })
+      .catch(() => {
+        document.getElementById('status').className = 'status err';
+        document.getElementById('status').textContent = 'API unreachable';
+      });
+  </script>
+</body>
+</html>

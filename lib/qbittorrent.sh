@@ -1,0 +1,122 @@
+#!/bin/bash
+
+deploy_qbittorrent() {
+  header "qBittorrent + VPN"
+
+  if docker compose ls | grep -q qbittorrent; then
+    info "qBittorrent already running, skipping"
+    return
+  fi
+
+  if ! prompt_yes_no "  Do you want VPN protection with Gluetun?"; then
+    deploy_qbittorrent_no_vpn
+    return
+  fi
+
+  local torrents_path="${STORAGE_DIR:-$DATA_DIR}/torrents"
+  mkdir -p "$torrents_path"/{complete,incomplete}
+  mkdir -p "$DATA_DIR/config/qbittorrent"
+
+  info "VPN setup required"
+  info "Get your WireGuard keys from your VPN provider (e.g., Mullvad)"
+  local vpn_provider
+  vpn_provider=$(prompt_input "  VPN provider" "mullvad")
+  local wg_private_key
+  wg_private_key=$(prompt_secret "  WireGuard private key")
+  local wg_address
+  wg_address=$(prompt_input "  WireGuard address" "")
+
+  mkdir -p "$HOMELAB_DIR/qbittorrent"
+
+  cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << QBITTORRENT
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - VPN_SERVICE_PROVIDER=${vpn_provider}
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${wg_private_key}
+      - WIREGUARD_ADDRESSES=${wg_address}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qbittorrent.rule=Host(\`torrent.home\`)"
+      - "traefik.http.routers.qbittorrent.entrypoints=web"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
+    networks:
+      - traefik-net
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    network_mode: service:gluetun
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - WEBUI_PORT=8080
+    volumes:
+      - /data/config/qbittorrent:/config
+      - ${torrents_path}:/data/torrents
+    depends_on:
+      - gluetun
+
+networks:
+  traefik-net:
+    external: true
+QBITTORRENT
+
+  docker compose -f "$HOMELAB_DIR/qbittorrent/docker-compose.yml" up -d
+
+  cat >> "$HOMELAB_DIR/urls.txt" << URLS
+qBittorrent   → http://torrent.home
+URLS
+
+  ok "qBittorrent deployed at http://torrent.home"
+  info "Default login: admin / adminadmin — change it immediately"
+}
+
+deploy_qbittorrent_no_vpn() {
+  local torrents_path="${STORAGE_DIR:-$DATA_DIR}/torrents"
+  mkdir -p "$torrents_path"/{complete,incomplete}
+  mkdir -p "$DATA_DIR/config/qbittorrent"
+
+  mkdir -p "$HOMELAB_DIR/qbittorrent"
+
+  cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << QBITTORRENT
+services:
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - WEBUI_PORT=8080
+    volumes:
+      - /data/config/qbittorrent:/config
+      - ${torrents_path}:/data/torrents
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qbittorrent.rule=Host(\`torrent.home\`)"
+      - "traefik.http.routers.qbittorrent.entrypoints=web"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
+    networks:
+      - traefik-net
+
+networks:
+  traefik-net:
+    external: true
+QBITTORRENT
+
+  docker compose -f "$HOMELAB_DIR/qbittorrent/docker-compose.yml" up -d
+
+  cat >> "$HOMELAB_DIR/urls.txt" << URLS
+qBittorrent   → http://torrent.home (no VPN)
+URLS
+
+  ok "qBittorrent deployed at http://torrent.home (no VPN)"
+}
