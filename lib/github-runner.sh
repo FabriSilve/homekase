@@ -20,7 +20,7 @@ ENV
   cat > "$HOMELAB_DIR/github-runner/docker-compose.yml" << 'RUNNER'
 services:
   github-runner:
-    image: myoung34/github-runner:latest
+    image: myoung34/github-runner:2.319.1
     container_name: github-runner
     restart: unless-stopped
     env_file:

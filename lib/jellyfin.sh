@@ -17,7 +17,7 @@ deploy_jellyfin() {
   cat > "$HOMELAB_DIR/jellyfin/docker-compose.yml" << JELLYFIN
 services:
   jellyfin:
-    image: jellyfin/jellyfin:latest
+    image: jellyfin/jellyfin:10.9.11
     container_name: jellyfin
     restart: unless-stopped
     ports:

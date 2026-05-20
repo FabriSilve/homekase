@@ -20,7 +20,7 @@ deploy_adguard() {
   cat > "$HOMELAB_DIR/traefik/adguard.yml" << 'ADGUARD_COMPOSE'
 services:
   adguard:
-    image: adguard/adguardhome:latest
+    image: adguard/adguardhome:v0.107.52
     container_name: adguard
     restart: unless-stopped
     ports:

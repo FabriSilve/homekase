@@ -39,7 +39,7 @@ ENV
   cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << 'QBITTORRENT'
 services:
   gluetun:
-    image: qmcgaw/gluetun:latest
+    image: qmcgaw/gluetun:v3.39
     container_name: gluetun
     restart: unless-stopped
     cap_add:
@@ -57,7 +57,7 @@ services:
       - traefik-net
 
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
+    image: lscr.io/linuxserver/qbittorrent:4.6.7
     container_name: qbittorrent
     restart: unless-stopped
     network_mode: service:gluetun
@@ -100,7 +100,7 @@ ENV
   cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << 'QBITTORRENT'
 services:
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
+    image: lscr.io/linuxserver/qbittorrent:4.6.7
     container_name: qbittorrent
     restart: unless-stopped
     environment:

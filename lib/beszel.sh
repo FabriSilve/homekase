@@ -15,7 +15,7 @@ deploy_beszel() {
   cat > "$HOMELAB_DIR/monitoring/docker-compose.yml" << BESZEL
 services:
   beszel-hub:
-    image: henrygd/beszel:latest
+    image: henrygd/beszel:0.7
     container_name: beszel
     restart: unless-stopped
     ports:

@@ -15,7 +15,7 @@ deploy_syncthing() {
   cat > "$HOMELAB_DIR/syncthing/docker-compose.yml" << SYNCTHING
 services:
   syncthing:
-    image: syncthing/syncthing:latest
+    image: syncthing/syncthing:1.27
     container_name: syncthing
     restart: unless-stopped
     environment:
