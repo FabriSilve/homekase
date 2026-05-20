@@ -172,7 +172,7 @@ get_user() {
 }
 
 get_home() {
-  eval echo "~$(get_user)"
+  getent passwd "$(get_user)" | cut -d: -f6
 }
 
 append_url() {
