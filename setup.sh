@@ -51,6 +51,8 @@ if $DRY_RUN; then
   chsh() { echo -e "${YELLOW}[DRY-RUN]${NC} chsh $*"; }
   chown() { :; }
   systemctl() { echo -e "${YELLOW}[DRY-RUN]${NC} systemctl $*"; }
+  gum() { echo -e "${YELLOW}[DRY-RUN]${NC} gum $*"; }
+  gpg() { echo -e "${YELLOW}[DRY-RUN]${NC} gpg $*"; }
 fi
 
 main() {
