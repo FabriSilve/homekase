@@ -17,6 +17,16 @@ assert_failure() {
   fi
 }
 
+assert_equal() {
+  local expected="$1"
+  local actual="$2"
+  if [[ "$expected" != "$actual" ]]; then
+    echo "expected: $expected"
+    echo "got:      $actual"
+    return 1
+  fi
+}
+
 assert_output() {
   if [[ "$1" == "--partial" ]]; then
     local expected="$2"
