@@ -57,6 +57,11 @@ Things that break or behave badly on re-run (`homekase update` or re-running `se
 - [ ] **80% LVM allocation hardcoded**: sensible default but should be explained to user during disk selection.
 - [ ] **No error handling if pvcreate fails**: e.g. if disk has existing partitions or LVM signature. Should catch and offer to wipe.
 
+## Package Management
+
+- [ ] **Migrate lazygit to apt/repo install**: currently downloads binary via curl + tar. Should add PPA or use apt repo pattern for consistency with gum/gh.
+- [ ] **Migrate yazi to apt/repo install**: currently downloads binary via curl + zip. Same pattern as lazygit.
+
 ## Robustness
 
 - [ ] **No app name validation in `homekase create`**: special chars, spaces, slashes will break sed substitution and Docker labels. Validate: `[a-z0-9-]` only.
