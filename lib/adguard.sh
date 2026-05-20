@@ -23,6 +23,8 @@ services:
     image: adguard/adguardhome:v0.107.52
     container_name: adguard
     restart: unless-stopped
+    # Port 53 is intentionally exposed to all interfaces for LAN DNS resolution.
+    # Port 3000 is the initial setup UI — open only during first configuration.
     ports:
       - "53:53/tcp"
       - "53:53/udp"

@@ -28,6 +28,8 @@ services:
     environment:
       - RUNNER_LABELS=homelab
       - RUNNER_GROUP=Default
+    # WARNING: Docker socket mount grants this container full root access to the host.
+    # For better isolation, consider Docker-in-Docker (dind) or Sysbox runtime.
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
