@@ -65,27 +65,49 @@ main() {
 
   setup_wizard_ui
 
+  section "Welcome" \
+    "This setup will: update system packages, install dev tools (editor, git TUI, file manager, shell prompt), configure firewall, set up Docker, configure disk storage, and deploy homelab services (reverse proxy, DNS, media, etc.)."
+
   preflight_check curl git lsblk findmnt openssl || exit 1
 
+  local TOTAL_STEPS=10
+  local STEP=0
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: System Update & Base Packages"
   run_system_update
   install_base_packages
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Firewall"
   configure_firewall
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Developer Tools"
   install_shell_tools
   install_neovim
   install_starship
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Shell Configuration"
   set_fish_default
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Docker"
   install_docker
   create_homelab_dirs
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Disk Setup"
   run_disk_setup
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Reverse Proxy"
   deploy_traefik
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: DNS & Ad Blocking"
   deploy_adguard
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Services"
   service_menu
   deploy_selected_services
 
-  # Install the homekase fish function
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Finishing Up"
   install_homekase_function
 
-  # Generate summary
   generate_summary
 }
 
