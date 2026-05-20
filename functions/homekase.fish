@@ -124,7 +124,7 @@ function __homekase_create_app -a app_name
     echo ""
     echo "━━━ $app_name deployed ━━━"
     echo "  http://$app_name.home"
-    echo "  DB password: $db_password"
+    echo "  DB password saved to $APP_DIR/.env"
     echo ""
 
     # Add to URLs file
