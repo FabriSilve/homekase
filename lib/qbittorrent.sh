@@ -28,7 +28,15 @@ deploy_qbittorrent() {
 
   mkdir -p "$HOMELAB_DIR/qbittorrent"
 
-  cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << QBITTORRENT
+  # Write secrets to .env file
+  cat > "$HOMELAB_DIR/qbittorrent/.env" << ENV
+VPN_SERVICE_PROVIDER=${vpn_provider}
+WIREGUARD_PRIVATE_KEY=${wg_private_key}
+WIREGUARD_ADDRESSES=${wg_address}
+TORRENTS_PATH=${torrents_path}
+ENV
+
+  cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << 'QBITTORRENT'
 services:
   gluetun:
     image: qmcgaw/gluetun:latest
@@ -36,14 +44,13 @@ services:
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
+    env_file:
+      - .env
     environment:
-      - VPN_SERVICE_PROVIDER=${vpn_provider}
       - VPN_TYPE=wireguard
-      - WIREGUARD_PRIVATE_KEY=${wg_private_key}
-      - WIREGUARD_ADDRESSES=${wg_address}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.qbittorrent.rule=Host(\`torrent.home\`)"
+      - "traefik.http.routers.qbittorrent.rule=Host(`torrent.home`)"
       - "traefik.http.routers.qbittorrent.entrypoints=web"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
     networks:
@@ -60,7 +67,7 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - /data/config/qbittorrent:/config
-      - ${torrents_path}:/data/torrents
+      - ${TORRENTS_PATH}:/data/torrents
     depends_on:
       - gluetun
 
@@ -75,6 +82,7 @@ QBITTORRENT
 
   ok "qBittorrent deployed at http://torrent.home"
   info "Default login: admin / adminadmin — change it immediately"
+  info "VPN credentials saved to $HOMELAB_DIR/qbittorrent/.env"
 }
 
 deploy_qbittorrent_no_vpn() {
@@ -84,7 +92,12 @@ deploy_qbittorrent_no_vpn() {
 
   mkdir -p "$HOMELAB_DIR/qbittorrent"
 
-  cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << QBITTORRENT
+  # Write paths to .env file
+  cat > "$HOMELAB_DIR/qbittorrent/.env" << ENV
+TORRENTS_PATH=${torrents_path}
+ENV
+
+  cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << 'QBITTORRENT'
 services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -96,10 +109,10 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - /data/config/qbittorrent:/config
-      - ${torrents_path}:/data/torrents
+      - ${TORRENTS_PATH}:/data/torrents
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.qbittorrent.rule=Host(\`torrent.home\`)"
+      - "traefik.http.routers.qbittorrent.rule=Host(`torrent.home`)"
       - "traefik.http.routers.qbittorrent.entrypoints=web"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
     networks:

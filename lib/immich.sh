@@ -14,11 +14,20 @@ deploy_immich() {
 
   local db_password
   db_password=$(prompt_secret "  Set Immich database password")
-  [ -z "$db_password" ] && db_password="change_this_password"
+  if [ -z "$db_password" ]; then
+    db_password=$(openssl rand -base64 24)
+    info "Auto-generated database password"
+  fi
 
   mkdir -p "$HOMELAB_DIR/immich"
 
-  cat > "$HOMELAB_DIR/immich/docker-compose.yml" << IMMICH
+  # Write secrets to .env file
+  cat > "$HOMELAB_DIR/immich/.env" << ENV
+DB_PASSWORD=${db_password}
+PHOTOS_PATH=${photos_path}
+ENV
+
+  cat > "$HOMELAB_DIR/immich/docker-compose.yml" << 'IMMICH'
 services:
   immich-server:
     image: ghcr.io/immich-app/immich-server:release
@@ -27,14 +36,14 @@ services:
     environment:
       DB_HOSTNAME: immich-db
       DB_USERNAME: postgres
-      DB_PASSWORD: ${db_password}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: immich
       REDIS_HOSTNAME: immich-redis
     volumes:
-      - ${photos_path}:/usr/src/app/upload
+      - ${PHOTOS_PATH}:/usr/src/app/upload
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.immich.rule=Host(\`photos.home\`)"
+      - "traefik.http.routers.immich.rule=Host(`photos.home`)"
       - "traefik.http.routers.immich.entrypoints=web"
       - "traefik.http.services.immich.loadbalancer.server.port=3001"
     depends_on:
@@ -51,11 +60,11 @@ services:
     environment:
       DB_HOSTNAME: immich-db
       DB_USERNAME: postgres
-      DB_PASSWORD: ${db_password}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: immich
       REDIS_HOSTNAME: immich-redis
     volumes:
-      - ${photos_path}:/usr/src/app/upload
+      - ${PHOTOS_PATH}:/usr/src/app/upload
     depends_on:
       - immich-db
       - immich-redis
@@ -69,7 +78,7 @@ services:
     environment:
       DB_HOSTNAME: immich-db
       DB_USERNAME: postgres
-      DB_PASSWORD: ${db_password}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: immich
       REDIS_HOSTNAME: immich-redis
     depends_on:
@@ -84,7 +93,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${db_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: immich
     volumes:
       - /data/databases/immich:/var/lib/postgresql/data
@@ -110,4 +119,5 @@ IMMICH
   append_url "Immich        → http://photos.home"
 
   ok "Immich deployed at http://photos.home"
+  info "Database password saved to $HOMELAB_DIR/immich/.env"
 }

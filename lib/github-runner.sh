@@ -11,15 +11,21 @@ deploy_github_runner() {
 
   mkdir -p "$HOMELAB_DIR/github-runner"
 
-  cat > "$HOMELAB_DIR/github-runner/docker-compose.yml" << RUNNER
+  # Write secrets to .env file
+  cat > "$HOMELAB_DIR/github-runner/.env" << ENV
+REPO_URL=https://github.com/${org}
+RUNNER_TOKEN=${runner_token}
+ENV
+
+  cat > "$HOMELAB_DIR/github-runner/docker-compose.yml" << 'RUNNER'
 services:
   github-runner:
     image: myoung34/github-runner:latest
     container_name: github-runner
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - REPO_URL=https://github.com/${org}
-      - RUNNER_TOKEN=${runner_token}
       - RUNNER_LABELS=homelab
       - RUNNER_GROUP=Default
     volumes:
@@ -35,4 +41,5 @@ RUNNER
   docker compose -f "$HOMELAB_DIR/github-runner/docker-compose.yml" up -d
 
   ok "GitHub Actions runner registered for $org"
+  info "Runner credentials saved to $HOMELAB_DIR/github-runner/.env"
 }
