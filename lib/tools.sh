@@ -3,38 +3,67 @@
 install_shell_tools() {
   header "Shell & Terminal Tools"
 
-  local packages=(fish zellij fzf bat ripgrep unzip)
-
-  info "Installing shell tools..."
+  # Base packages always installed (fish, fzf, bat, ripgrep needed by system)
+  local packages=(fish fzf bat ripgrep unzip)
+  info "Installing base shell tools..."
   apt install -y -qq "${packages[@]}"
-  ok "Shell tools installed"
+  ok "Base shell tools installed"
 
-  if is_installed lazygit; then
-    info "lazygit already installed, skipping"
-  else
-    info "Installing lazygit..."
-    local LAZYGIT_VERSION
-    LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" -o /tmp/lazygit.tar.gz
-    tar xzf /tmp/lazygit.tar.gz -C /tmp
-    mv /tmp/lazygit /usr/local/bin/lazygit
-    ok "lazygit installed"
+  # Terminal multiplexer selection
+  local mux_choice
+  mux_choice=$(prompt_choose "Which terminal multiplexer do you want?" \
+    "zellij — Modern terminal workspace with built-in layouts" \
+    "Skip — I'll use tmux or my own")
+  if [[ "$mux_choice" == zellij* ]]; then
+    if is_installed zellij; then
+      info "zellij already installed"
+    else
+      apt install -y -qq zellij
+      ok "zellij installed"
+    fi
   fi
 
-  if is_installed yazi; then
-    info "yazi already installed, skipping"
-  else
-    info "Installing yazi..."
-    local YAZI_VERSION
-    YAZI_VERSION=$(curl -s "https://api.github.com/repos/sxyazi/yazi/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-    curl -fsSL "https://github.com/sxyazi/yazi/releases/download/v${YAZI_VERSION}/yazi-x86_64-unknown-linux-gnu.zip" -o /tmp/yazi.zip
-    unzip -q /tmp/yazi.zip -d /tmp
-    mv "/tmp/yazi-x86_64-unknown-linux-gnu/yazi" /usr/local/bin/yazi
-    ok "yazi installed"
+  # Git TUI selection
+  local git_choice
+  git_choice=$(prompt_choose "Which git tool do you want?" \
+    "lazygit — Terminal UI for git commands" \
+    "Skip — I'll use git CLI or my own tool")
+  if [[ "$git_choice" == lazygit* ]]; then
+    if is_installed lazygit; then
+      info "lazygit already installed"
+    else
+      info "Installing lazygit..."
+      local LAZYGIT_VERSION
+      LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+      curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" -o /tmp/lazygit.tar.gz
+      tar xzf /tmp/lazygit.tar.gz -C /tmp
+      mv /tmp/lazygit /usr/local/bin/lazygit
+      ok "lazygit installed"
+    fi
   fi
 
+  # File manager selection
+  local fm_choice
+  fm_choice=$(prompt_choose "Which terminal file manager do you want?" \
+    "yazi — Fast TUI file manager with preview" \
+    "Skip — I'll use ls/find or my own")
+  if [[ "$fm_choice" == yazi* ]]; then
+    if is_installed yazi; then
+      info "yazi already installed"
+    else
+      info "Installing yazi..."
+      local YAZI_VERSION
+      YAZI_VERSION=$(curl -s "https://api.github.com/repos/sxyazi/yazi/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+      curl -fsSL "https://github.com/sxyazi/yazi/releases/download/v${YAZI_VERSION}/yazi-x86_64-unknown-linux-gnu.zip" -o /tmp/yazi.zip
+      unzip -q /tmp/yazi.zip -d /tmp
+      mv "/tmp/yazi-x86_64-unknown-linux-gnu/yazi" /usr/local/bin/yazi
+      ok "yazi installed"
+    fi
+  fi
+
+  # GitHub CLI (not optional — needed for runner setup)
   if is_installed gh; then
-    info "GitHub CLI already installed, skipping"
+    info "GitHub CLI already installed"
   else
     info "Installing GitHub CLI..."
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd status=none of=/usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -47,6 +76,17 @@ install_shell_tools() {
 }
 
 install_neovim() {
+  # Terminal editor selection
+  local editor_choice
+  editor_choice=$(prompt_choose "Which terminal editor do you want?" \
+    "LazyVim — Neovim with IDE features pre-configured" \
+    "Skip — I'll install my own editor")
+
+  if [[ "$editor_choice" == Skip* ]]; then
+    info "Editor installation skipped"
+    return
+  fi
+
   header "Neovim & LazyVim"
 
   if is_installed nvim; then
@@ -77,6 +117,17 @@ install_neovim() {
 }
 
 install_starship() {
+  # Shell prompt selection
+  local prompt_choice
+  prompt_choice=$(prompt_choose "Which shell prompt do you want?" \
+    "Starship — Fast prompt showing git status, language versions, etc." \
+    "Skip — I'll configure my own prompt")
+
+  if [[ "$prompt_choice" == Skip* ]]; then
+    info "Shell prompt installation skipped"
+    return
+  fi
+
   header "Starship Prompt"
 
   if is_installed starship; then
