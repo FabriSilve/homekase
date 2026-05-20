@@ -32,6 +32,14 @@ function homekase -d "Manage your homekase homelab"
 end
 
 function __homekase_create_app -a app_name
+    # Validate app name: lowercase letters, numbers, hyphens only
+    if not string match -qr '^[a-z0-9][a-z0-9-]*$' "$app_name"
+        echo "✗ Invalid app name: '$app_name'"
+        echo "  Must contain only lowercase letters, numbers, and hyphens."
+        echo "  Must start with a letter or number."
+        return 1
+    end
+
     set -l APP_DIR "$HOMELAB_DIR/apps/$app_name"
 
     if test -d "$APP_DIR"
