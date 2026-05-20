@@ -9,40 +9,56 @@ install_shell_tools() {
   apt install -y -qq "${packages[@]}"
   ok "Shell tools installed"
 
-  info "Installing lazygit..."
-  local LAZYGIT_VERSION
-  LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-  curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" -o /tmp/lazygit.tar.gz
-  tar xzf /tmp/lazygit.tar.gz -C /tmp
-  mv /tmp/lazygit /usr/local/bin/lazygit
-  ok "lazygit installed"
+  if is_installed lazygit; then
+    info "lazygit already installed, skipping"
+  else
+    info "Installing lazygit..."
+    local LAZYGIT_VERSION
+    LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" -o /tmp/lazygit.tar.gz
+    tar xzf /tmp/lazygit.tar.gz -C /tmp
+    mv /tmp/lazygit /usr/local/bin/lazygit
+    ok "lazygit installed"
+  fi
 
-  info "Installing yazi..."
-  local YAZI_VERSION
-  YAZI_VERSION=$(curl -s "https://api.github.com/repos/sxyazi/yazi/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
-  curl -fsSL "https://github.com/sxyazi/yazi/releases/download/v${YAZI_VERSION}/yazi-x86_64-unknown-linux-gnu.zip" -o /tmp/yazi.zip
-  unzip -q /tmp/yazi.zip -d /tmp
-  mv "/tmp/yazi-x86_64-unknown-linux-gnu/yazi" /usr/local/bin/yazi
-  ok "yazi installed"
+  if is_installed yazi; then
+    info "yazi already installed, skipping"
+  else
+    info "Installing yazi..."
+    local YAZI_VERSION
+    YAZI_VERSION=$(curl -s "https://api.github.com/repos/sxyazi/yazi/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+    curl -fsSL "https://github.com/sxyazi/yazi/releases/download/v${YAZI_VERSION}/yazi-x86_64-unknown-linux-gnu.zip" -o /tmp/yazi.zip
+    unzip -q /tmp/yazi.zip -d /tmp
+    mv "/tmp/yazi-x86_64-unknown-linux-gnu/yazi" /usr/local/bin/yazi
+    ok "yazi installed"
+  fi
 
-  info "Installing GitHub CLI..."
-  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd status=none of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-  chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-  apt update -qq
-  apt install -y -qq gh
-  ok "GitHub CLI installed"
+  if is_installed gh; then
+    info "GitHub CLI already installed, skipping"
+  else
+    info "Installing GitHub CLI..."
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd status=none of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    apt update -qq
+    apt install -y -qq gh
+    ok "GitHub CLI installed"
+  fi
 }
 
 install_neovim() {
   header "Neovim & LazyVim"
 
-  info "Installing Neovim..."
-  curl -fsSL https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -o /tmp/nvim.tar.gz
-  rm -rf /opt/nvim-linux-x86_64
-  tar xzf /tmp/nvim.tar.gz -C /opt
-  ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
-  ok "Neovim installed"
+  if is_installed nvim; then
+    info "Neovim already installed, skipping"
+  else
+    info "Installing Neovim..."
+    curl -fsSL https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -o /tmp/nvim.tar.gz
+    rm -rf /opt/nvim-linux-x86_64
+    tar xzf /tmp/nvim.tar.gz -C /opt
+    ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+    ok "Neovim installed"
+  fi
 
   local user_home
   user_home=$(get_home)
