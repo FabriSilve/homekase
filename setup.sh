@@ -61,6 +61,8 @@ main() {
   echo -e "${BOLD}└─────────────────────────────────────────┘${NC}"
   echo ""
 
+  setup_wizard_ui
+
   run_system_update
   install_base_packages
   configure_firewall
