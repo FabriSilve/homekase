@@ -3,13 +3,10 @@
 ## Security
 
 ### Secrets Management
-- [ ] **Secrets stored in docker-compose.yml files**: DB passwords, runner tokens, WireGuard private keys are all written directly in compose YAML. Should use `.env` files per service. Affected:
-  - `immich.sh` — DB_PASSWORD in compose (4 places)
-  - `github-runner.sh` — RUNNER_TOKEN in compose
-  - `qbittorrent.sh` — WIREGUARD_PRIVATE_KEY in compose
-  - `homekase.fish` — RUNNER_TOKEN appended to compose
-- [ ] **Immich DB password fallback**: silently defaults to `change_this_password` if user skips prompt. Should require input or auto-generate with `openssl rand -base64 24` (like `homekase.fish` already does for app scaffolding).
-- [ ] **DB password printed to stdout in `homekase create`**: `homekase.fish:127` prints password to terminal. Consider writing to `.env` only and telling user where to find it.
+- [x] **Secrets stored in docker-compose.yml files**: Moved to `.env` files per service (immich, github-runner, qbittorrent).
+  - `homekase.fish` — RUNNER_TOKEN still appended to compose (fish function, separate fix needed)
+- [x] **Immich DB password fallback**: Now auto-generates with `openssl rand -base64 24` if user skips prompt.
+- [x] **DB password printed to stdout in `homekase create`**: Now points user to `.env` file instead.
 
 ### Network / Access
 - [ ] **Traefik dashboard exposed without authentication**: `dashboard.home` has no basic auth or IP whitelist. Anyone on LAN can see all routes.
@@ -19,7 +16,7 @@
 - [ ] **Port 53 open to all interfaces**: AdGuard DNS listens on `53:53/udp` — exposed to entire LAN. Fine for intended use, but should be documented as intentional.
 
 ### Container Security
-- [ ] **Docker socket mounted in GitHub runner**: `github-runner.sh:26` and `homekase.fish:111` mount `/var/run/docker.sock` — grants container full root access to host. Document the risk; consider using Docker-in-Docker or Sysbox instead.
+- [ ] **Docker socket mounted in GitHub runner**: `github-runner.sh` and `homekase.fish` mount `/var/run/docker.sock` — grants container full root access to host. Document the risk; consider using Docker-in-Docker or Sysbox instead.
 - [ ] **GitHub runner image unpinned**: `myoung34/github-runner:latest` — supply chain risk. Pin to specific digest or version tag.
 - [ ] **All service images use `latest`**: AdGuard, Jellyfin, qBittorrent, Syncthing, Beszel — all unpinned. Pin versions for reproducibility.
 
@@ -31,31 +28,31 @@
 
 Things that break or behave badly on re-run (`homekase update` or re-running `setup.sh`).
 
-### Broken on Re-run (Data Corruption / Duplication)
-- [ ] **`config.fish` appended every run** (`users.sh:24`): `cat >>` adds the config block again each time. Fish will source duplicated aliases/env vars. Fix: check if marker comment exists before appending, or write to a separate `homekase.fish` conf.d file.
-- [ ] **`urls.txt` appended every deploy**: every `deploy_*` function does `cat >> urls.txt` without checking if entry already exists. Re-running setup duplicates all URL entries. Fix: check with `grep -q` before appending (like `homekase.fish:132` already does correctly).
-- [ ] **`/etc/fstab` appended without dedup check** (`disks.sh:90`): `echo >> /etc/fstab` adds mount entry every run. Multiple identical fstab lines. Fix: `grep -q "$mount_point" /etc/fstab || echo >> /etc/fstab`.
-- [ ] **`ufw --force reset` on every run** (`system.sh:27`): wipes ALL existing firewall rules including any custom rules user added after initial setup. Fix: check if rules already match expected state, or skip if UFW is already active with correct rules.
+### Broken on Re-run (Data Corruption / Duplication) — ALL FIXED
+- [x] **`config.fish` appended every run**: Now writes to `conf.d/homekase.fish` with overwrite (`>`), not append.
+- [x] **`urls.txt` appended every deploy**: Now uses `append_url` helper with `grep -qF` dedup check.
+- [x] **`/etc/fstab` appended without dedup check**: Now checks `grep -qF` before appending + backs up fstab.
+- [x] **`ufw --force reset` on every run**: Now checks if UFW already active with correct rules, skips if so. Also prompts before applying.
 
-### Not Guarded (Re-downloads / Overwrites)
-- [ ] **`install_shell_tools` re-downloads everything**: lazygit, yazi, gh keyring — all re-fetched and overwritten every run. No version check. Fix: check `lazygit --version`, `yazi --version` before downloading.
-- [ ] **`install_neovim` re-downloads nvim binary every run**: only LazyVim clone is guarded (`dir_exists`). Nvim itself gets re-downloaded and extracted. Fix: check `nvim --version` or existence of `/opt/nvim-linux-x86_64`.
+### Not Guarded (Re-downloads / Overwrites) — ALL FIXED
+- [x] **`install_shell_tools` re-downloads everything**: Now guarded with `is_installed` checks for lazygit, yazi, gh.
+- [x] **`install_neovim` re-downloads nvim binary every run**: Now guarded with `is_installed nvim`.
 - [ ] **`install_base_packages` re-runs apt install**: harmless (apt skips installed packages) but slow. Low priority.
 
 ### Correctly Guarded (No Action Needed)
 - `install_docker` — guarded with `is_installed docker`
 - `install_starship` — guarded with `is_installed starship`
-- `set_fish_default` — guarded with `/etc/passwd` check (shell change only, but config.fish append is NOT guarded)
+- `set_fish_default` — guarded with `/etc/passwd` check + prompt before changing
 - `setup_lvm_and_mount` — guarded with `mountpoint -q`
 - All `deploy_*` functions — guarded with `docker compose ls | grep`
 - LazyVim clone — guarded with `dir_exists`
 
 ## Disk Operations
 
-- [ ] **No blank-disk check before LVM**: `pvcreate`/`vgcreate` will destroy data without warning. Add confirmation showing existing partitions/filesystem with `lsblk -f` or `blkid`.
-- [ ] **No fstab backup**: should `cp /etc/fstab /etc/fstab.bak` before modifying.
-- [ ] **80% LVM allocation hardcoded**: sensible default but should be explained to user during disk selection.
-- [ ] **No error handling if pvcreate fails**: e.g. if disk has existing partitions or LVM signature. Should catch and offer to wipe.
+- [x] **No blank-disk check before LVM**: Now shows existing partitions with `lsblk -f` and requires confirmation.
+- [x] **No fstab backup**: Now backs up to `/etc/fstab.bak` before modifying.
+- [x] **80% LVM allocation hardcoded**: Now explained to user during setup.
+- [x] **No error handling if pvcreate fails**: Now catches failure and suggests `wipefs -a` as manual fix.
 
 ## Package Management
 
@@ -64,8 +61,8 @@ Things that break or behave badly on re-run (`homekase update` or re-running `se
 
 ## Robustness
 
-- [ ] **No app name validation in `homekase create`**: special chars, spaces, slashes will break sed substitution and Docker labels. Validate: `[a-z0-9-]` only.
-- [ ] **`get_home()` uses `eval echo ~user`**: works but fragile — consider `getent passwd "$user" | cut -d: -f6`.
+- [x] **No app name validation in `homekase create`**: Now validates `[a-z0-9-]` only.
+- [x] **`get_home()` uses `eval echo ~user`**: Now uses `getent passwd` which is safer.
 - [ ] **No pre-flight check for required commands**: lsblk, findmnt needed for disk setup but not checked upfront.
 
 ## Testing
@@ -85,22 +82,10 @@ Things that break or behave badly on re-run (`homekase update` or re-running `se
 
 Steps that run silently but should follow the wizard pattern (explain what it is, what options mean, let user confirm before executing).
 
-### High Priority
-
-- [ ] **`configure_firewall`**: silently runs `ufw --force reset` and opens SSH, 80, 443, 53/UDP. Should:
-  - Explain: "This configures the firewall to allow only SSH, HTTP, HTTPS, and DNS traffic. All other incoming connections will be blocked."
-  - Show the ports that will be opened.
-  - Ask for confirmation before applying (especially the `--force reset` which wipes existing rules).
-
-- [ ] **`set_fish_default`**: changes the user's default shell with no prompt. Should:
-  - Explain: "Fish is a modern shell with syntax highlighting and auto-suggestions. This will change your default shell from bash to fish."
-  - Ask: "Set fish as your default shell? [Y/n]"
-  - This is a significant UX change — user should consent.
-
-- [ ] **`deploy_adguard`**: deploys a DNS server without asking. Should:
-  - Explain: "AdGuard Home is a DNS server that blocks ads and enables *.home domain routing."
-  - Ask: "Deploy AdGuard Home? [Y/n]"
-  - Or move it into the service_menu alongside other optional services.
+### High Priority — ALL DONE
+- [x] **`configure_firewall`**: Now uses `section` to explain + asks confirmation before applying.
+- [x] **`set_fish_default`**: Now explains fish and asks "Set fish as your default shell?" before changing.
+- [x] **`deploy_adguard`**: Now explains what AdGuard does and asks before deploying.
 
 ### Medium Priority — Tool Selection Menus
 
@@ -146,29 +131,23 @@ Each tool category should present a numbered selection menu. Only two options no
   ```
   Future options: tmux, screen, etc.
 
-Pattern: use a generic `tool_select "Category prompt" option1 desc1 option2 desc2 ...` helper in common.sh so adding new categories or options is trivial.
+Pattern: use `prompt_choose` helper (now available in common.sh / common_wizard.sh).
 
 ### Low Priority (Nice to Have)
 
-- [ ] **`run_system_update`**: runs apt update + upgrade silently. Consider:
-  - Brief explanation: "Updating system packages to latest versions."
-  - No prompt needed — this is standard and expected.
-
-- [ ] **`install_docker`**: core infrastructure, well-guarded. Consider:
-  - Brief explanation: "Docker is required for all services. Installing Docker Engine + Compose."
-  - No prompt needed — it's a prerequisite.
+- [ ] **`run_system_update`**: runs apt update + upgrade silently. Consider brief explanation.
+- [ ] **`install_docker`**: core infrastructure, well-guarded. Consider brief explanation.
 
 ### General Wizard Improvements
 
-- [ ] **Add a welcome/overview step**: before anything runs, show a summary of what the setup will do (system update, tools, disk setup, services) so user knows what to expect.
+- [ ] **Add a welcome/overview step**: before anything runs, show a summary of what the setup will do.
 - [ ] **Add step numbering**: e.g. "Step 3/8: Shell Tools" so user knows progress.
-- [ ] **Add a confirmation before destructive steps**: especially disk setup and firewall reset.
-- [ ] **Group optional tools into a selection menu**: similar to `service_menu` but for dev tools (fish, nvim, starship, lazygit, etc.).
+- [ ] **Group optional tools into a selection menu**: similar to `service_menu` but for dev tools.
 
 ### Already Good (Wizard Pattern Followed)
 
 - `run_disk_setup` — shows table, prompts selection, allows skip. Well done.
 - `service_menu` — description + yes/no per service. Clean pattern.
-- `deploy_immich` — prompts for DB password.
+- `deploy_immich` — prompts for DB password (now auto-generates if empty).
 - `deploy_qbittorrent` — asks about VPN, prompts for provider/keys.
 - `deploy_github_runner` — prompts for org and token.
