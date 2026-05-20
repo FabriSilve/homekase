@@ -59,3 +59,34 @@ setup() {
   # Just checking it doesn't crash
   assert_success
 }
+
+@test "section: outputs title and description" {
+  run section "My Title" "Some description text"
+  assert_success
+  assert_output --partial "My Title"
+  assert_output --partial "Some description text"
+}
+
+@test "prompt_choose: selects option by number" {
+  run bash -c 'source lib/common.sh; echo "2" | prompt_choose "Pick one" "alpha" "beta" "gamma"'
+  assert_success
+  assert_output --partial "beta"
+}
+
+@test "prompt_choose: defaults to first on empty input" {
+  run bash -c 'source lib/common.sh; echo "" | prompt_choose "Pick one" "alpha" "beta"'
+  assert_success
+  assert_output --partial "alpha"
+}
+
+@test "prompt_multi_choose: selects multiple options" {
+  run bash -c 'source lib/common.sh; echo "1,3" | prompt_multi_choose "Pick many" "alpha" "beta" "gamma"'
+  assert_success
+  assert_output --partial "alpha"
+  assert_output --partial "gamma"
+}
+
+@test "prompt_multi_choose: returns empty on no selection" {
+  run bash -c 'source lib/common.sh; echo "" | prompt_multi_choose "Pick many" "alpha" "beta"'
+  assert_success
+}

@@ -19,6 +19,66 @@ warn()  { echo -e "${YELLOW}!${NC} $1"; }
 error() { echo -e "${RED}✗${NC} $1"; }
 header() { echo -e "\n${BOLD}━━━ $1 ━━━${NC}\n"; }
 
+section() {
+  local title="$1"
+  local description="$2"
+  echo ""
+  echo -e "${BOLD}━━━ ${title} ━━━${NC}"
+  echo -e "${CYAN}${description}${NC}"
+  echo ""
+}
+
+prompt_choose() {
+  local prompt="$1"
+  shift
+  local options=("$@")
+
+  echo -e "${BOLD}${prompt}${NC}" >&2
+  local i=1
+  for opt in "${options[@]}"; do
+    echo "  ${i}) ${opt}" >&2
+    ((i++))
+  done
+
+  local choice
+  read -r -p "Enter number [1]: " choice
+  choice=${choice:-1}
+
+  if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
+    echo "${options[$((choice - 1))]}"
+  else
+    echo "${options[0]}"
+  fi
+}
+
+prompt_multi_choose() {
+  local prompt="$1"
+  shift
+  local options=("$@")
+
+  echo -e "${BOLD}${prompt}${NC}" >&2
+  local i=1
+  for opt in "${options[@]}"; do
+    echo "  ${i}) ${opt}" >&2
+    ((i++))
+  done
+
+  local choices
+  read -r -p "Enter numbers (comma-separated, e.g. 1,3) [none]: " choices
+
+  if [ -z "$choices" ]; then
+    return 0
+  fi
+
+  IFS=',' read -ra selected <<< "$choices"
+  for num in "${selected[@]}"; do
+    num=$(echo "$num" | tr -d ' ')
+    if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -ge 1 ] && [ "$num" -le "${#options[@]}" ]; then
+      echo "${options[$((num - 1))]}"
+    fi
+  done
+}
+
 prompt_yes_no() {
   local prompt="$1"
   local default="${2:-y}"

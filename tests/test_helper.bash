@@ -18,28 +18,26 @@ assert_failure() {
 }
 
 assert_output() {
-  local expected="$1"
-  if [[ "$output" != "$expected" ]]; then
-    echo "expected: $expected"
-    echo "got:      $output"
-    return 1
-  fi
-}
-
-assert_output --partial() {
-  local expected="$1"
-  if [[ "$output" != *"$expected"* ]]; then
-    echo "expected to contain: $expected"
-    echo "got:                $output"
-    return 1
-  fi
-}
-
-assert_output --regexp() {
-  local expected="$1"
-  if [[ ! "$output" =~ $expected ]]; then
-    echo "expected to match: $expected"
-    echo "got:              $output"
-    return 1
+  if [[ "$1" == "--partial" ]]; then
+    local expected="$2"
+    if [[ "$output" != *"$expected"* ]]; then
+      echo "expected to contain: $expected"
+      echo "got:                $output"
+      return 1
+    fi
+  elif [[ "$1" == "--regexp" ]]; then
+    local expected="$2"
+    if [[ ! "$output" =~ $expected ]]; then
+      echo "expected to match: $expected"
+      echo "got:              $output"
+      return 1
+    fi
+  else
+    local expected="$1"
+    if [[ "$output" != "$expected" ]]; then
+      echo "expected: $expected"
+      echo "got:      $output"
+      return 1
+    fi
   fi
 }
