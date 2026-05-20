@@ -175,6 +175,20 @@ get_home() {
   getent passwd "$(get_user)" | cut -d: -f6
 }
 
+preflight_check() {
+  local missing=()
+  for cmd in "$@"; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+    fi
+  done
+  if [ ${#missing[@]} -gt 0 ]; then
+    error "Missing required commands: ${missing[*]}"
+    error "Install them before running setup."
+    return 1
+  fi
+}
+
 append_url() {
   local entry="$1"
   local urls_file="${HOMELAB_DIR}/urls.txt"

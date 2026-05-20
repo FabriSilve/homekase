@@ -65,6 +65,8 @@ main() {
 
   setup_wizard_ui
 
+  preflight_check curl git lsblk findmnt openssl || exit 1
+
   run_system_update
   install_base_packages
   configure_firewall
