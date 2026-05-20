@@ -48,9 +48,7 @@ ADGUARD_COMPOSE
   info "After setup, configure your router's DHCP to use $server_ip as DNS server"
   info "or set up AdGuard as DHCP server"
 
-  cat >> "$HOMELAB_DIR/urls.txt" << URLS
-AdGuard Home  → http://dns.home
-URLS
+  append_url "AdGuard Home  → http://dns.home"
 
   ok "AdGuard Home deployed"
 }

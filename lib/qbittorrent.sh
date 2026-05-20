@@ -71,9 +71,7 @@ QBITTORRENT
 
   docker compose -f "$HOMELAB_DIR/qbittorrent/docker-compose.yml" up -d
 
-  cat >> "$HOMELAB_DIR/urls.txt" << URLS
-qBittorrent   → http://torrent.home
-URLS
+  append_url "qBittorrent   → http://torrent.home"
 
   ok "qBittorrent deployed at http://torrent.home"
   info "Default login: admin / adminadmin — change it immediately"
@@ -114,9 +112,7 @@ QBITTORRENT
 
   docker compose -f "$HOMELAB_DIR/qbittorrent/docker-compose.yml" up -d
 
-  cat >> "$HOMELAB_DIR/urls.txt" << URLS
-qBittorrent   → http://torrent.home (no VPN)
-URLS
+  append_url "qBittorrent   → http://torrent.home (no VPN)"
 
   ok "qBittorrent deployed at http://torrent.home (no VPN)"
 }

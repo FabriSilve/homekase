@@ -107,9 +107,7 @@ IMMICH
 
   docker compose -f "$HOMELAB_DIR/immich/docker-compose.yml" up -d
 
-  cat >> "$HOMELAB_DIR/urls.txt" << URLS
-Immich        → http://photos.home
-URLS
+  append_url "Immich        → http://photos.home"
 
   ok "Immich deployed at http://photos.home"
 }

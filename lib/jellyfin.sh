@@ -40,9 +40,7 @@ JELLYFIN
 
   docker compose -f "$HOMELAB_DIR/jellyfin/docker-compose.yml" up -d
 
-  cat >> "$HOMELAB_DIR/urls.txt" << URLS
-Jellyfin      → http://jellyfin.home
-URLS
+  append_url "Jellyfin      → http://jellyfin.home"
 
   ok "Jellyfin deployed at http://jellyfin.home"
 }

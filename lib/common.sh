@@ -174,3 +174,9 @@ get_user() {
 get_home() {
   eval echo "~$(get_user)"
 }
+
+append_url() {
+  local entry="$1"
+  local urls_file="${HOMELAB_DIR}/urls.txt"
+  grep -qF "$entry" "$urls_file" 2>/dev/null || echo "$entry" >> "$urls_file"
+}

@@ -37,9 +37,7 @@ BESZEL
 
   docker compose -f "$HOMELAB_DIR/monitoring/docker-compose.yml" up -d
 
-  cat >> "$HOMELAB_DIR/urls.txt" << URLS
-Monitoring    → http://monitoring.home
-URLS
+  append_url "Monitoring    → http://monitoring.home"
 
   ok "Beszel deployed at http://monitoring.home"
 }

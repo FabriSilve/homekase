@@ -39,9 +39,7 @@ SYNCTHING
 
   docker compose -f "$HOMELAB_DIR/syncthing/docker-compose.yml" up -d
 
-  cat >> "$HOMELAB_DIR/urls.txt" << URLS
-Syncthing     → http://sync.home
-URLS
+  append_url "Syncthing     → http://sync.home"
 
   ok "Syncthing deployed at http://sync.home"
 }
