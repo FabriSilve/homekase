@@ -1,10 +1,16 @@
 #!/bin/bash
 
 deploy_adguard() {
-  header "AdGuard Home"
+  section "AdGuard Home" \
+    "AdGuard Home is a DNS server that blocks ads and enables *.home domain routing. It will listen on port 53 (DNS) and 3000 (setup UI)."
 
   if docker compose ls | grep -q adguard; then
     info "AdGuard Home already running, skipping"
+    return
+  fi
+
+  if ! prompt_yes_no "Deploy AdGuard Home?"; then
+    warn "AdGuard Home skipped"
     return
   fi
 
