@@ -10,6 +10,17 @@ deploy_traefik() {
 
   mkdir -p "$HOMELAB_DIR/traefik"
 
+  # Generate basic auth credentials for dashboard
+  local dash_password
+  dash_password=$(openssl rand -base64 12)
+  local dash_hash
+  dash_hash=$(openssl passwd -apr1 "$dash_password")
+  local auth_label="admin:${dash_hash}"
+
+  cat > "$HOMELAB_DIR/traefik/.env" << ENV
+DASHBOARD_AUTH=${auth_label}
+ENV
+
   cat > "$HOMELAB_DIR/traefik/docker-compose.yml" << 'TRAEFIK_COMPOSE'
 services:
   traefik:
@@ -33,6 +44,8 @@ services:
       - "traefik.http.routers.dashboard.rule=Host(`dashboard.home`)"
       - "traefik.http.routers.dashboard.entrypoints=web"
       - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${DASHBOARD_AUTH}"
     networks:
       - traefik-net
 
@@ -43,5 +56,8 @@ networks:
 TRAEFIK_COMPOSE
 
   docker compose -f "$HOMELAB_DIR/traefik/docker-compose.yml" up -d
+
   ok "Traefik deployed at http://dashboard.home"
+  info "Dashboard login: admin / $dash_password"
+  info "Credentials saved to $HOMELAB_DIR/traefik/.env"
 }
