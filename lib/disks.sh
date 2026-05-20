@@ -80,8 +80,22 @@ setup_lvm_and_mount() {
   fi
 
   info "Setting up LVM on $device for $mount_point..."
+  info "LVM will use 80% of disk space, leaving 20% unallocated for future expansion."
 
-  pvcreate "$device"
+  # Show existing data on disk for safety
+  warn "Current state of $device:"
+  lsblk -f "$device" 2>/dev/null || true
+
+  if ! prompt_yes_no "This will ERASE ALL DATA on $device. Continue?"; then
+    warn "Disk setup aborted for $device"
+    return 1
+  fi
+
+  if ! pvcreate -f "$device"; then
+    error "pvcreate failed on $device — disk may have existing partitions or LVM signatures"
+    warn "Run 'wipefs -a $device' manually if you want to force it"
+    return 1
+  fi
   vgcreate "$vg_name" "$device"
   lvcreate -l 80%FREE -n data "$vg_name"
   mkfs.ext4 "/dev/$vg_name/data"
