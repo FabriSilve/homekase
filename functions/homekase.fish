@@ -96,25 +96,30 @@ function __homekase_create_app -a app_name
 
     # Set up GitHub runner if repo URL provided
     if test -n "$repo_url" -a -n "$runner_token"
-        mkdir -p "$HOMELAB_DIR/github-runner"
-        set -l runner_compose "$HOMELAB_DIR/github-runner/docker-compose.yml"
-        if not test -f "$runner_compose"
-            echo "version: '3'" > "$runner_compose"
-            echo "services:" >> "$runner_compose"
-        end
+        set -l runner_dir "$HOMELAB_DIR/github-runner"
+        mkdir -p "$runner_dir"
 
-        set -l org (echo $repo_url | sed 's|https://github.com/||' | sed 's|/.*||')
+        # Write secrets to .env (not in compose)
+        echo "REPO_URL=$repo_url" > "$runner_dir/.env.$app_name"
+        echo "RUNNER_TOKEN=$runner_token" >> "$runner_dir/.env.$app_name"
+
+        set -l runner_compose "$runner_dir/docker-compose.yml"
         set -l runner_name "$app_name-runner"
+
+        if not test -f "$runner_compose"
+            echo "services:" > "$runner_compose"
+        end
 
         echo "" >> "$runner_compose"
         echo "  $runner_name:" >> "$runner_compose"
         echo "    image: myoung34/github-runner:latest" >> "$runner_compose"
         echo "    container_name: $runner_name" >> "$runner_compose"
         echo "    restart: unless-stopped" >> "$runner_compose"
+        echo "    env_file:" >> "$runner_compose"
+        echo "      - .env.$app_name" >> "$runner_compose"
         echo "    environment:" >> "$runner_compose"
-        echo "      - REPO_URL=$repo_url" >> "$runner_compose"
-        echo "      - RUNNER_TOKEN=$runner_token" >> "$runner_compose"
         echo "      - RUNNER_LABELS=homelab" >> "$runner_compose"
+        # WARNING: Docker socket grants container full root access to host
         echo "    volumes:" >> "$runner_compose"
         echo "      - /var/run/docker.sock:/var/run/docker.sock" >> "$runner_compose"
         echo "    networks:" >> "$runner_compose"
@@ -122,6 +127,7 @@ function __homekase_create_app -a app_name
 
         docker compose -f "$runner_compose" up -d $runner_name 2>/dev/null
         echo "  ✓ GitHub runner registered"
+        echo "  ✓ Runner credentials saved to $runner_dir/.env.$app_name"
     end
 
     # Start the app
