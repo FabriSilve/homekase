@@ -87,7 +87,13 @@ setup_lvm_and_mount() {
   mkfs.ext4 "/dev/$vg_name/data"
 
   mkdir -p "$mount_point"
-  echo "/dev/$vg_name/data $mount_point ext4 defaults 0 2" >> /etc/fstab
+
+  local fstab_entry="/dev/$vg_name/data $mount_point ext4 defaults 0 2"
+  if ! grep -qF "$mount_point" /etc/fstab; then
+    cp /etc/fstab /etc/fstab.bak
+    echo "$fstab_entry" >> /etc/fstab
+  fi
+
   mount "$mount_point"
 
   ok "$mount_point ready (20% unallocated for future expansion)"
