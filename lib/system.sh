@@ -1,7 +1,7 @@
 #!/bin/bash
 
 run_system_update() {
-  header "System Update"
+  info "Updating system packages to latest versions."
   info "Updating package lists..."
   apt update -qq
   info "Upgrading packages..."

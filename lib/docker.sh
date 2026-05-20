@@ -1,7 +1,7 @@
 #!/bin/bash
 
 install_docker() {
-  header "Docker"
+  info "Docker is required for all services. Installing Docker Engine + Compose."
 
   if is_installed docker; then
     info "Docker already installed, skipping"
