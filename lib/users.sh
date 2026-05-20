@@ -1,7 +1,8 @@
 #!/bin/bash
 
 set_fish_default() {
-  header "Shell Configuration"
+  section "Shell Configuration" \
+    "Fish is a modern shell with syntax highlighting and auto-suggestions. This will change your default shell from bash to fish."
 
   local user
   user=$(get_user)
@@ -11,10 +12,13 @@ set_fish_default() {
   # Set fish as default shell (idempotent — skips if already set)
   if grep -q "^$user.*fish$" /etc/passwd; then
     info "Fish is already default shell for $user"
-  else
+  elif prompt_yes_no "Set fish as your default shell?"; then
     info "Setting fish as default shell for $user..."
     chsh -s "$(command -v fish)" "$user"
     ok "Default shell set to fish"
+  else
+    warn "Skipped — keeping current shell"
+    return
   fi
 
   # Write config to conf.d (idempotent — uses > not >>)
