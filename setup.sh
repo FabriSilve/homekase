@@ -70,7 +70,7 @@ main() {
 
   preflight_check curl git lsblk findmnt openssl || exit 1
 
-  local TOTAL_STEPS=10
+  local TOTAL_STEPS=11
   local STEP=0
 
   ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: System Update & Base Packages"
@@ -105,6 +105,9 @@ main() {
   ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Services"
   service_menu
   deploy_selected_services
+
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: AI Assistant"
+  deploy_assistant
 
   ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Finishing Up"
   install_homekase_function
