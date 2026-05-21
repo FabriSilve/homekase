@@ -17,6 +17,31 @@ deploy_adguard() {
   mkdir -p "$DATA_DIR/config/adguard/work"
   mkdir -p "$DATA_DIR/config/adguard/conf"
 
+  # Pre-seed AdGuard config with admin credentials to avoid open setup wizard race
+  local adguard_password
+  adguard_password=$(openssl rand -base64 12)
+  local adguard_hash
+  adguard_hash=$(openssl passwd -6 "$adguard_password")
+
+  if [ ! -f "$DATA_DIR/config/adguard/conf/AdGuardHome.yaml" ]; then
+    cat > "$DATA_DIR/config/adguard/conf/AdGuardHome.yaml" << ADGUARD_CONFIG
+http:
+  address: 0.0.0.0:3000
+users:
+  - name: admin
+    password: ${adguard_hash}
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+ADGUARD_CONFIG
+    info "AdGuard admin credentials pre-configured"
+  fi
+
+  cat > "$HOMELAB_DIR/traefik/.adguard.env" << ENV
+ADGUARD_ADMIN_PASSWORD=${adguard_password}
+ENV
+
   cat > "$HOMELAB_DIR/traefik/adguard.yml" << 'ADGUARD_COMPOSE'
 services:
   adguard:
@@ -52,9 +77,10 @@ ADGUARD_COMPOSE
   local server_ip
   server_ip=$(hostname -I | awk '{print $1}')
 
-  info "Complete AdGuard setup at http://$server_ip:3000"
-  info "After setup, configure your router's DHCP to use $server_ip as DNS server"
-  info "or set up AdGuard as DHCP server"
+  info "AdGuard dashboard: http://$server_ip:3000"
+  info "Login: admin / $adguard_password"
+  info "Credentials saved to $HOMELAB_DIR/traefik/.adguard.env"
+  info "Configure your router's DHCP to use $server_ip as DNS server"
 
   append_url "AdGuard Home  → http://dns.home"
 
