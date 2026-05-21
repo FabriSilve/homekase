@@ -28,12 +28,16 @@ deploy_qbittorrent() {
 
   mkdir -p "$HOMELAB_DIR/qbittorrent"
 
+  local qbt_password
+  qbt_password=$(openssl rand -base64 12)
+
   # Write secrets to .env file
   cat > "$HOMELAB_DIR/qbittorrent/.env" << ENV
 VPN_SERVICE_PROVIDER=${vpn_provider}
 WIREGUARD_PRIVATE_KEY=${wg_private_key}
 WIREGUARD_ADDRESSES=${wg_address}
 TORRENTS_PATH=${torrents_path}
+QBT_PASSWORD=${qbt_password}
 ENV
 
   cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << 'QBITTORRENT'
@@ -81,8 +85,8 @@ QBITTORRENT
   append_url "qBittorrent   → http://torrent.home"
 
   ok "qBittorrent deployed at http://torrent.home"
-  info "Default login: admin / adminadmin — change it immediately"
-  info "VPN credentials saved to $HOMELAB_DIR/qbittorrent/.env"
+  info "WebUI login: admin / $qbt_password"
+  info "Credentials saved to $HOMELAB_DIR/qbittorrent/.env"
 }
 
 deploy_qbittorrent_no_vpn() {
@@ -92,9 +96,13 @@ deploy_qbittorrent_no_vpn() {
 
   mkdir -p "$HOMELAB_DIR/qbittorrent"
 
+  local qbt_password
+  qbt_password=$(openssl rand -base64 12)
+
   # Write paths to .env file
   cat > "$HOMELAB_DIR/qbittorrent/.env" << ENV
 TORRENTS_PATH=${torrents_path}
+QBT_PASSWORD=${qbt_password}
 ENV
 
   cat > "$HOMELAB_DIR/qbittorrent/docker-compose.yml" << 'QBITTORRENT'
@@ -128,4 +136,6 @@ QBITTORRENT
   append_url "qBittorrent   → http://torrent.home (no VPN)"
 
   ok "qBittorrent deployed at http://torrent.home (no VPN)"
+  info "WebUI login: admin / $qbt_password"
+  info "Credentials saved to $HOMELAB_DIR/qbittorrent/.env"
 }
