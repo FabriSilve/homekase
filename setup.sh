@@ -1,21 +1,20 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO_URL="https://github.com/FabriSilve/homekase.git"
-
 # Must run as root — check early for clear feedback
 if [ "$(whoami)" != "root" ]; then
   echo "This script must be run as root."
-  echo "Try: curl -fsSL https://raw.githubusercontent.com/FabriSilve/homekase/main/setup.sh | sudo bash"
+  echo "Try: curl -fsSL https://raw.githubusercontent.com/FabriSilve/homekase/master/setup.sh | sudo bash"
   exit 1
 fi
 
 # If running via curl | bash, clone the repo first
+# Note: HOMEKASE_REPO not available yet (config.sh not sourced), hardcoded here
 if [ ! -d "$(dirname "$0")/lib" ]; then
   echo ":: Downloading homekase..."
   apt update -qq && apt install -y -qq git
   TEMP_DIR=$(mktemp -d)
-  git clone --depth=1 "$REPO_URL" "$TEMP_DIR" 2>/dev/null || {
+  git clone --depth=1 "https://github.com/FabriSilve/homekase.git" "$TEMP_DIR" 2>/dev/null || {
     echo "Failed to clone repository"
     exit 1
   }
@@ -23,6 +22,10 @@ if [ ! -d "$(dirname "$0")/lib" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source config first — other libs depend on it
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/config.sh"
 
 for lib in "$SCRIPT_DIR"/lib/*.sh; do
   # shellcheck disable=SC1090

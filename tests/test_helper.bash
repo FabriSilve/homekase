@@ -1,6 +1,10 @@
 # test_helper.bash — minimal bats assertion helpers
 # Provides assert_success, assert_failure, assert_output, etc.
 
+# Source config before any lib (provides HOMELAB_DIR, etc.)
+# shellcheck disable=SC1091
+source "${BATS_TEST_DIRNAME}/../lib/config.sh"
+
 assert_success() {
   if [ "$status" -ne 0 ]; then
     echo "expected success, got exit code $status"

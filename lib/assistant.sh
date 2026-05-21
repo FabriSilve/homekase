@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ASSISTANT_REPO="https://github.com/FabriSilve/homekase-assistant.git"
+# ASSISTANT_REPO comes from config.sh
 ASSISTANT_DIR="$HOMELAB_DIR/assistant"
 
 # Estimated RAM usage per service (MB)
@@ -41,12 +41,12 @@ recommend_model() {
   # 7B:  ~5GB model  + 1.5GB whisper + 150MB piper/agent = ~7GB
   # 3B:  ~2.5GB model + 1GB whisper-tiny + 150MB         = ~4GB
 
-  if [ "$available_mb" -ge 12288 ]; then
-    echo "qwen2.5:14b 12288 excellent"
-  elif [ "$available_mb" -ge 7168 ]; then
-    echo "qwen2.5:7b 7168 good"
-  elif [ "$available_mb" -ge 4096 ]; then
-    echo "qwen2.5:3b 4096 basic"
+  if [ "$available_mb" -ge "${ASSISTANT_RAM_EXCELLENT:-12288}" ]; then
+    echo "qwen2.5:14b ${ASSISTANT_RAM_EXCELLENT:-12288} excellent"
+  elif [ "$available_mb" -ge "${ASSISTANT_RAM_GOOD:-7168}" ]; then
+    echo "qwen2.5:7b ${ASSISTANT_RAM_GOOD:-7168} good"
+  elif [ "$available_mb" -ge "${ASSISTANT_RAM_BASIC:-4096}" ]; then
+    echo "qwen2.5:3b ${ASSISTANT_RAM_BASIC:-4096} basic"
   else
     echo "none 0 insufficient"
   fi

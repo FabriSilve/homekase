@@ -1,9 +1,5 @@
 #!/bin/bash
-
-HOMELAB_DIR="/opt/homelab"
-DATA_DIR="/data"
-STORAGE_DIR="/storage"
-REPO_URL="https://github.com/FabriSilve/homekase.git"
+# Values come from config.sh (sourced before this file alphabetically)
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
