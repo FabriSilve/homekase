@@ -55,3 +55,64 @@ configure_firewall() {
   ufw --force enable
   ok "Firewall configured (SSH, HTTP, HTTPS, DNS)"
 }
+
+harden_ssh() {
+  section "SSH Hardening (Optional)" \
+    "This will: disable root login, disable password authentication (key-only), and install fail2ban to block brute-force attempts."
+
+  if ! prompt_yes_no "Apply SSH hardening?" "n"; then
+    info "SSH hardening skipped"
+    return
+  fi
+
+  warn "Make sure you have SSH key access before proceeding!"
+  warn "If you only use password login, you will be locked out."
+  if ! prompt_yes_no "I confirm I have SSH key access configured" "n"; then
+    warn "SSH hardening aborted — set up SSH keys first"
+    return
+  fi
+
+  local sshd_config="/etc/ssh/sshd_config"
+
+  # Disable root login
+  if grep -q "^PermitRootLogin" "$sshd_config"; then
+    sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' "$sshd_config"
+  else
+    echo "PermitRootLogin no" >> "$sshd_config"
+  fi
+  ok "Root login disabled"
+
+  # Disable password authentication
+  if grep -q "^PasswordAuthentication" "$sshd_config"; then
+    sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' "$sshd_config"
+  else
+    echo "PasswordAuthentication no" >> "$sshd_config"
+  fi
+  ok "Password authentication disabled (key-only)"
+
+  # Restart sshd
+  systemctl restart sshd
+  ok "SSH daemon restarted"
+
+  # Install fail2ban
+  if is_installed fail2ban-client; then
+    info "fail2ban already installed"
+  else
+    info "Installing fail2ban..."
+    apt install -y -qq fail2ban
+
+    # Create local jail config
+    cat > /etc/fail2ban/jail.local << 'JAIL'
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+maxretry = 5
+bantime = 3600
+findtime = 600
+JAIL
+
+    systemctl enable --now fail2ban
+    ok "fail2ban installed and enabled (5 retries, 1h ban)"
+  fi
+}

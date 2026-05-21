@@ -77,8 +77,9 @@ main() {
   run_system_update
   install_base_packages
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Firewall"
+  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Firewall & SSH"
   configure_firewall
+  harden_ssh
 
   ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Developer Tools"
   install_shell_tools
