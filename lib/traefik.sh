@@ -15,7 +15,9 @@ deploy_traefik() {
   dash_password=$(openssl rand -base64 12)
   local dash_hash
   dash_hash=$(openssl passwd -apr1 "$dash_password")
-  local auth_label="admin:${dash_hash}"
+  # Double $ signs so Docker Compose doesn't interpolate hash as variables
+  local escaped_hash="${dash_hash//\$/\$\$}"
+  local auth_label="admin:${escaped_hash}"
 
   cat > "$HOMELAB_DIR/traefik/.env" << ENV
 DASHBOARD_AUTH=${auth_label}
