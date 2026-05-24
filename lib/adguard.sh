@@ -34,6 +34,12 @@ dns:
   bind_hosts:
     - 0.0.0.0
   port: 53
+  upstream_dns:
+    - 1.1.1.1
+    - 8.8.8.8
+  bootstrap_dns:
+    - 1.1.1.1
+    - 8.8.8.8
 ADGUARD_CONFIG
     info "AdGuard admin credentials pre-configured"
   fi
@@ -72,10 +78,37 @@ networks:
     external: true
 ADGUARD_COMPOSE
 
+  # Disable systemd-resolved stub listener to free port 53 for AdGuard
+  local resolved_conf="/etc/systemd/resolved.conf.d"
+  mkdir -p "$resolved_conf"
+  if [ ! -f "$resolved_conf/homekase.conf" ]; then
+    cat > "$resolved_conf/homekase.conf" << 'RESOLVED'
+[Resolve]
+DNSStubListener=no
+DNS=1.1.1.1 8.8.8.8
+RESOLVED
+    systemctl restart systemd-resolved
+
+    # Point resolv.conf to upstream DNS (AdGuard will take over once configured)
+    rm -f /etc/resolv.conf
+    cat > /etc/resolv.conf << 'RESOLV'
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+RESOLV
+    info "systemd-resolved stub listener disabled, port 53 freed for AdGuard"
+  fi
+
   docker compose -f "$HOMELAB_DIR/traefik/adguard.yml" up -d
 
   local server_ip
   server_ip=$(hostname -I | awk '{print $1}')
+
+  # Point host DNS to AdGuard now that it's running
+  cat > /etc/resolv.conf << RESOLV
+nameserver 127.0.0.1
+nameserver 1.1.1.1
+RESOLV
+  info "Host DNS now using AdGuard (127.0.0.1) with 1.1.1.1 fallback"
 
   info "AdGuard dashboard: http://$server_ip:3000"
   info "Login: admin / $adguard_password"
