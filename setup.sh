@@ -81,53 +81,53 @@ main() {
   local TOTAL_STEPS=11
   local STEP=0
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: System Update & Base Packages"
   run_system_update
   install_base_packages
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Firewall & SSH"
   configure_firewall
   harden_ssh
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Developer Tools"
   install_shell_tools
   install_neovim
   install_starship
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Shell Configuration"
   set_fish_default
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Docker"
   install_docker
   create_homelab_dirs
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Disk Setup"
   run_disk_setup
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Reverse Proxy"
   deploy_traefik
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: DNS & Ad Blocking"
   deploy_adguard
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Services"
   service_menu
   deploy_selected_services
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: AI Assistant"
   deploy_assistant
 
-  ((STEP++))
+  ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Finishing Up"
   install_homekase_function
 
