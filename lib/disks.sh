@@ -471,8 +471,9 @@ setup_erase_lvm_and_mount() {
     return 1
   fi
   vgcreate "$vg_name" "$device"
-  lvcreate -l 80%FREE -n data "$vg_name"
-  mkfs.ext4 "/dev/$vg_name/data"
+  lvcreate --yes -l 80%FREE -n data "$vg_name"
+  wipefs -a "/dev/$vg_name/data"
+  mkfs.ext4 -q "/dev/$vg_name/data"
 
   mkdir -p "$mount_point"
 

@@ -144,7 +144,7 @@ install_homekase_function() {
   local func_dir="$user_home/.config/fish/functions"
   mkdir -p "$func_dir"
   cp "$SCRIPT_DIR/functions/homekase.fish" "$func_dir/homekase.fish"
-  chown -R "$(get_user):$(get_user)" "$func_dir" 2>/dev/null || true
+  chown -R "$(get_user):$(get_user)" "$user_home/.config" 2>/dev/null || true
 
   mkdir -p "$HOMELAB_DIR/templates"
   cp -r "$SCRIPT_DIR/templates/." "$HOMELAB_DIR/templates/"
