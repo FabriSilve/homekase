@@ -167,39 +167,41 @@ get_strategies_for_device() {
   local mount_point="$2"
   local strategies=()
 
-  # Check if device has an existing VG with free space
+  # Check if device (or its children) belongs to a VG with free space
   local vg_with_free=""
   if command -v pvs >/dev/null 2>&1; then
     while IFS= read -r pv_line; do
       local pv_name pv_vg
       pv_name=$(echo "$pv_line" | awk '{print $1}')
       pv_vg=$(echo "$pv_line" | awk '{print $2}')
-      if lsblk -ln -o NAME "$device" 2>/dev/null | grep -q "$(basename "$pv_name" | sed 's|/dev/||')"; then
+
+      local pv_matches=false
+      # Direct match: device itself is PV (e.g. /dev/sda after erase+LVM)
+      if [ "$pv_name" = "$device" ]; then
+        pv_matches=true
+      fi
+      # Child match: a partition on device is PV (e.g. /dev/nvme0n1p3 -> LUKS -> LVM)
+      if ! $pv_matches && lsblk -ln -o NAME "$device" 2>/dev/null | grep -q "$(basename "$pv_name")"; then
+        pv_matches=true
+      fi
+      # Mapper match: PV is a mapper device backed by this disk (LUKS case)
+      if ! $pv_matches && [ -b "$pv_name" ]; then
+        local pv_slave
+        pv_slave=$(lsblk -s -ln -o NAME "$pv_name" 2>/dev/null | tail -1)
+        if [ -n "$pv_slave" ] && lsblk -ln -o NAME "$device" 2>/dev/null | grep -q "$pv_slave"; then
+          pv_matches=true
+        fi
+      fi
+
+      if $pv_matches; then
         local free_bytes
         free_bytes=$(vgs --noheadings --nosuffix --units b -o vg_free "$pv_vg" 2>/dev/null | tr -d ' ')
         if [ "${free_bytes:-0}" -gt 1073741824 ]; then
           vg_with_free="$pv_vg"
+          break
         fi
       fi
     done < <(pvs --noheadings 2>/dev/null)
-  fi
-
-  # Also check root's VG (common Ubuntu case: LVM inside LUKS)
-  if [ -z "$vg_with_free" ]; then
-    local root_vg
-    root_vg=$(lvs --noheadings -o vg_name "$(findmnt -n -o SOURCE /)" 2>/dev/null | tr -d ' ')
-    if [ -n "$root_vg" ]; then
-      local free_bytes
-      free_bytes=$(vgs --noheadings --nosuffix --units b -o vg_free "$root_vg" 2>/dev/null | tr -d ' ')
-      if [ "${free_bytes:-0}" -gt 1073741824 ]; then
-        local vg_pv
-        vg_pv=$(pvs --noheadings -o pv_name -S "vg_name=$root_vg" 2>/dev/null | tr -d ' ')
-        if lsblk -ln -o PATH "$device" 2>/dev/null | grep -qF "$(echo "$vg_pv" | head -1)" || \
-           lsblk -s -ln -o NAME "$device" 2>/dev/null | grep -q "$(basename "$vg_pv" | head -c 10)"; then
-          vg_with_free="$root_vg"
-        fi
-      fi
-    fi
   fi
 
   if [ -n "$vg_with_free" ]; then
@@ -231,7 +233,7 @@ get_strategies_for_device() {
 
   # Check for free space on disk for new partition
   local free_space
-  free_space=$(parted -s "$device" unit GB print free 2>/dev/null | awk '/Free Space/ {size=$3} END {print size}')
+  free_space=$(parted -s "$device" unit GB print free 2>/dev/null | awk '/Free Space/ {size=$3} END {print size}' || echo "")
   if [ -n "$free_space" ] && [ "$free_space" != "0.00GB" ]; then
     strategies+=("partition — Create new partition in free space (${free_space} available)")
   fi
@@ -261,8 +263,14 @@ setup_disk_and_mount() {
   # Build and present strategies
   local strategies=()
   while IFS= read -r s; do
-    strategies+=("$s")
+    [ -n "$s" ] && strategies+=("$s")
   done < <(get_strategies_for_device "$device" "$mount_point")
+
+  if [ ${#strategies[@]} -eq 0 ]; then
+    warn "No setup strategies available for $device"
+    strategies+=("directory — Use subdirectory on current root filesystem (no disk changes)")
+    strategies+=("skip — Don't set up $mount_point")
+  fi
 
   local strategy
   strategy=$(prompt_choose "How do you want to set up $mount_point on $device?" "${strategies[@]}")
