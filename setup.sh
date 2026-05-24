@@ -76,7 +76,7 @@ main() {
   section "Welcome" \
     "This setup will: update system packages, install dev tools (editor, git TUI, file manager, shell prompt), configure firewall, set up Docker, configure disk storage, and deploy homelab services (reverse proxy, DNS, media, etc.)."
 
-  preflight_check curl git lsblk findmnt openssl || exit 1
+  preflight_check curl git lsblk findmnt openssl parted || exit 1
 
   local TOTAL_STEPS=11
   local STEP=0
