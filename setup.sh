@@ -27,6 +27,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/config.sh"
 
 for lib in "$SCRIPT_DIR"/lib/*.sh; do
+  # common_wizard.sh is sourced on-demand by setup_wizard_ui()
+  [[ "$(basename "$lib")" == "common_wizard.sh" ]] && continue
   # shellcheck disable=SC1090
   source "$lib"
 done

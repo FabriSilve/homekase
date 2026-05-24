@@ -13,6 +13,12 @@ install_gum() {
 }
 
 setup_wizard_ui() {
+  # Skip interactive prompt when stdin is not a terminal (e.g. curl | bash)
+  if [ ! -t 0 ]; then
+    info "Non-interactive mode detected — using standard UI"
+    return
+  fi
+
   if is_installed gum; then
     if prompt_yes_no "Enable enhanced wizard UI?"; then
       source "$(dirname "${BASH_SOURCE[0]}")/common_wizard.sh"
