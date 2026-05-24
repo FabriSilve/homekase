@@ -117,7 +117,7 @@ install_neovim() {
   info "Installing LazyVim..."
   git clone --depth=1 https://github.com/LazyVim/starter "$nvim_config" 2>/dev/null || true
   rm -rf "$nvim_config/.git"
-  chown -R "$(get_user):$(get_user)" "$nvim_config" 2>/dev/null || true
+  chown -R "$(get_user):$(get_user)" "$user_home/.config" 2>/dev/null || true
   ok "LazyVim installed"
 }
 

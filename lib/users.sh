@@ -49,6 +49,6 @@ if status is-interactive
 end
 FISH_CONFIG
 
-  chown -R "$user:$user" "$conf_d" 2>/dev/null || true
+  chown -R "$user:$user" "$user_home/.config" 2>/dev/null || true
   ok "Fish config installed (conf.d/homekase.fish)"
 }
