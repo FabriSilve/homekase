@@ -8,9 +8,8 @@ if [ "$(whoami)" != "root" ]; then
   exit 1
 fi
 
-# If running via curl | bash, clone the repo first
-# Note: HOMEKASE_REPO not available yet (config.sh not sourced), hardcoded here
-if [ ! -d "$(dirname "$0")/lib" ]; then
+# If running via curl | bash, BASH_SOURCE is unset - clone repo and re-exec
+if [ -z "${BASH_SOURCE[0]:-}" ] || [ ! -d "$(dirname "${BASH_SOURCE[0]}")/lib" ]; then
   echo ":: Downloading homekase..."
   apt update -qq && apt install -y -qq git
   TEMP_DIR=$(mktemp -d)
@@ -18,7 +17,7 @@ if [ ! -d "$(dirname "$0")/lib" ]; then
     echo "Failed to clone repository"
     exit 1
   }
-  cd "$TEMP_DIR"
+  exec bash "$TEMP_DIR/setup.sh" "$@"
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -76,43 +75,54 @@ main() {
   local TOTAL_STEPS=11
   local STEP=0
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: System Update & Base Packages"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: System Update & Base Packages"
   run_system_update
   install_base_packages
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Firewall & SSH"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Firewall & SSH"
   configure_firewall
   harden_ssh
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Developer Tools"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Developer Tools"
   install_shell_tools
   install_neovim
   install_starship
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Shell Configuration"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Shell Configuration"
   set_fish_default
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Docker"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Docker"
   install_docker
   create_homelab_dirs
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Disk Setup"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Disk Setup"
   run_disk_setup
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Reverse Proxy"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Reverse Proxy"
   deploy_traefik
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: DNS & Ad Blocking"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: DNS & Ad Blocking"
   deploy_adguard
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Services"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Services"
   service_menu
   deploy_selected_services
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: AI Assistant"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: AI Assistant"
   deploy_assistant
 
-  ((STEP++)); header "Step ${STEP}/${TOTAL_STEPS}: Finishing Up"
+  ((STEP++))
+  header "Step ${STEP}/${TOTAL_STEPS}: Finishing Up"
   install_homekase_function
 
   generate_summary
