@@ -1,4 +1,7 @@
 #!/bin/bash
+# Wrap in function to prevent partial-download execution via curl | bash.
+# Bash won't execute until the closing brace is received.
+_homekase_bootstrap() {
 set -euo pipefail
 
 # Must run as root — check early for clear feedback
@@ -13,8 +16,9 @@ if [ -z "${BASH_SOURCE[0]:-}" ] || [ ! -d "$(dirname "${BASH_SOURCE[0]}")/lib" ]
   echo ":: Downloading homekase..."
   apt update -qq && apt install -y -qq git
   TEMP_DIR=$(mktemp -d)
-  git clone --depth=1 "https://github.com/FabriSilve/homekase.git" "$TEMP_DIR" 2>/dev/null || {
+  git clone --depth=1 "https://github.com/FabriSilve/homekase.git" "$TEMP_DIR" || {
     echo "Failed to clone repository"
+    rm -rf "$TEMP_DIR"
     exit 1
   }
   exec bash "$TEMP_DIR/setup.sh" "$@" </dev/tty
@@ -184,3 +188,5 @@ generate_summary() {
 }
 
 main "$@"
+}
+_homekase_bootstrap "$@"
