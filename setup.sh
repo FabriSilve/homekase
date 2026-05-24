@@ -17,7 +17,7 @@ if [ -z "${BASH_SOURCE[0]:-}" ] || [ ! -d "$(dirname "${BASH_SOURCE[0]}")/lib" ]
     echo "Failed to clone repository"
     exit 1
   }
-  exec bash "$TEMP_DIR/setup.sh" "$@"
+  exec bash "$TEMP_DIR/setup.sh" "$@" </dev/tty
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
