@@ -18,7 +18,12 @@ install_shell_tools() {
     if is_installed zellij; then
       info "zellij already installed"
     else
-      apt install -y -qq zellij
+      info "Installing zellij..."
+      local ZELLIJ_VERSION
+      ZELLIJ_VERSION=$(curl -s "https://api.github.com/repos/zellij-org/zellij/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+      curl -fsSL "https://github.com/zellij-org/zellij/releases/download/v${ZELLIJ_VERSION}/zellij-x86_64-unknown-linux-musl.tar.gz" -o /tmp/zellij.tar.gz
+      tar xzf /tmp/zellij.tar.gz -C /tmp
+      mv /tmp/zellij /usr/local/bin/zellij
       ok "zellij installed"
     fi
   fi
