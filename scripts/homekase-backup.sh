@@ -90,10 +90,11 @@ run_snapshot_backup() {
 
 run_incremental_backup() {
   local container="$1"
-  local source backup_name backup_path
+  local source backup_name backup_path retention
 
   backup_name=$(get_label "$container" "homekase.backup.name" "$container")
   source=$(get_label "$container" "homekase.backup.source" "")
+  retention=$(get_label "$container" "homekase.backup.retention" "7")
 
   if [ -z "$source" ]; then
     log "[$backup_name] ERROR: No source defined for incremental backup"
@@ -108,9 +109,37 @@ run_incremental_backup() {
   backup_path="$INCREMENTAL_DIR/$backup_name"
   mkdir -p "$backup_path"
 
-  log "[$backup_name] Incremental backup: $source -> $backup_path"
-  rsync -a --delete --info=stats2 "$source/" "$backup_path/" 2>> "$LOG_FILE"
+  local today_dir="$backup_path/$DATE_TAG"
+  local latest_link="$backup_path/latest"
+
+  # Use hardlinks from previous backup — unchanged files share disk blocks
+  local link_dest=""
+  if [ -L "$latest_link" ] && [ -d "$latest_link" ]; then
+    link_dest="--link-dest=$latest_link"
+  fi
+
+  log "[$backup_name] Incremental backup: $source -> $today_dir"
+  # shellcheck disable=SC2086
+  rsync -a --delete --info=stats2 $link_dest "$source/" "$today_dir/" 2>> "$LOG_FILE"
+
+  # Update latest symlink
+  rm -f "$latest_link"
+  ln -s "$today_dir" "$latest_link"
+
   log "[$backup_name] Incremental backup complete"
+
+  # Enforce retention — remove oldest dated directories beyond limit
+  local dirs
+  dirs=$(find "$backup_path" -maxdepth 1 -mindepth 1 -type d | sort)
+  local count
+  count=$(echo "$dirs" | wc -l)
+  if [ "$count" -gt "$retention" ]; then
+    local to_delete=$((count - retention))
+    log "[$backup_name] Enforcing retention ($retention): removing $to_delete old backup(s)"
+    echo "$dirs" | head -n "$to_delete" | while IFS= read -r old_dir; do
+      rm -rf "$old_dir"
+    done
+  fi
 }
 
 run_all_backups() {
@@ -181,23 +210,47 @@ show_status() {
     echo "    type:      $backup_type"
     [ -n "$source" ] && echo "    source:    $source"
     [ -n "$command" ] && echo "    command:   $command"
-    [ "$backup_type" = "snapshot" ] && echo "    retention: $retention"
+    echo "    retention: $retention"
 
     # Show existing backups
     local backup_path
     if [ "$backup_type" = "snapshot" ]; then
       backup_path="$SNAPSHOT_DIR/$backup_name"
+      if [ -d "$backup_path" ]; then
+        local count
+        count=$(find "$backup_path" -maxdepth 1 -type f \( -name "*.tar.gz" -o -name "*.sql.gz" \) 2>/dev/null | wc -l)
+        local size
+        size=$(du -sh "$backup_path" 2>/dev/null | awk '{print $1}')
+        echo "    backups:   $count snapshots, $size total"
+        # Show newest and oldest
+        local newest oldest
+        newest=$(find "$backup_path" -maxdepth 1 -type f -printf '%T+ %f\n' 2>/dev/null | sort -r | head -1 | awk '{print $2}')
+        oldest=$(find "$backup_path" -maxdepth 1 -type f -printf '%T+ %f\n' 2>/dev/null | sort | head -1 | awk '{print $2}')
+        [ -n "$newest" ] && echo "    newest:    $newest"
+        [ -n "$oldest" ] && [ "$oldest" != "$newest" ] && echo "    oldest:    $oldest"
+      else
+        echo "    backups:   (none yet)"
+      fi
     else
       backup_path="$INCREMENTAL_DIR/$backup_name"
-    fi
-    if [ -d "$backup_path" ]; then
-      local count
-      count=$(find "$backup_path" -maxdepth 1 -type f 2>/dev/null | wc -l)
-      local size
-      size=$(du -sh "$backup_path" 2>/dev/null | awk '{print $1}')
-      echo "    backups:   $count files, $size total"
-    else
-      echo "    backups:   (none yet)"
+      if [ -d "$backup_path" ]; then
+        local count
+        count=$(find "$backup_path" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
+        local size
+        size=$(du -sh "$backup_path" 2>/dev/null | awk '{print $1}')
+        echo "    backups:   $count versions, $size total (hardlinked)"
+        # Show available dates
+        local newest oldest
+        newest=$(find "$backup_path" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort -r | head -1)
+        oldest=$(find "$backup_path" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort | head -1)
+        [ -n "$newest" ] && echo "    newest:    $newest"
+        [ -n "$oldest" ] && [ "$oldest" != "$newest" ] && echo "    oldest:    $oldest"
+        if [ -L "$backup_path/latest" ]; then
+          echo "    latest:    $backup_path/latest/"
+        fi
+      else
+        echo "    backups:   (none yet)"
+      fi
     fi
     echo ""
   done <<< "$containers"

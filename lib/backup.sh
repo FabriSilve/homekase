@@ -90,15 +90,18 @@ add_backup_labels_to_services() {
     fi
   fi
 
-  # Immich photos — incremental
+  # Immich photos — incremental with hardlinks
   if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^immich-server$"; then
     local photos_path="${STORAGE_DIR:-$DATA_DIR}/photos"
     if prompt_yes_no "Add incremental backup for photos ($photos_path)?"; then
+      local retention
+      retention=$(prompt_input "How many daily versions to keep?" "7")
       add_labels_to_compose "immich" "immich-server" \
         "homekase.backup.type=incremental" \
         "homekase.backup.name=photos" \
-        "homekase.backup.source=$photos_path"
-      ok "Photos incremental backup labels added"
+        "homekase.backup.source=$photos_path" \
+        "homekase.backup.retention=$retention"
+      ok "Photos incremental backup labels added (retention: $retention versions)"
     fi
   fi
 
