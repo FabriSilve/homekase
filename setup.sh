@@ -78,7 +78,7 @@ main() {
 
   preflight_check curl git lsblk findmnt openssl parted || exit 1
 
-  local TOTAL_STEPS=11
+  local TOTAL_STEPS=12
   local STEP=0
 
   ((++STEP))
@@ -126,6 +126,10 @@ main() {
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: AI Assistant"
   deploy_assistant
+
+  ((++STEP))
+  header "Step ${STEP}/${TOTAL_STEPS}: Backups"
+  deploy_backup_service
 
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Finishing Up"

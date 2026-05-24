@@ -17,16 +17,24 @@ function homekase -d "Manage your homekase homelab"
         case status
             __homekase_status
 
+        case backup
+            if test (count $argv) -ge 2
+                homekase-backup $argv[2]
+            else
+                homekase-backup run
+            end
+
         case ""
-            echo "Usage: homekase {create|update|status}"
+            echo "Usage: homekase {create|update|status|backup}"
             echo ""
-            echo "  create <name>  Scaffold a new app"
-            echo "  update         Re-run setup (idempotent)"
-            echo "  status         Show resources, services, and URLs"
+            echo "  create <name>     Scaffold a new app"
+            echo "  update            Re-run setup (idempotent)"
+            echo "  status            Show resources, services, and URLs"
+            echo "  backup [status]   Run backups or show backup status"
 
         case '*'
             echo "Unknown command: $argv[1]"
-            echo "Usage: homekase {create|update|status}"
+            echo "Usage: homekase {create|update|status|backup}"
             return 1
     end
 end
@@ -188,14 +196,25 @@ function __homekase_status
     # Disk usage
     echo "── Storage ──"
     if mountpoint -q /data 2>/dev/null
-        df -h /data | tail -1 | awk '{print "  /data:   " $3 " / " $2 " (" $5 ")"}'
+        df -h /data | tail -1 | awk '{print "  /data:    " $3 " / " $2 " (" $5 ")"}'
+    else if test -d /data
+        echo "  /data:    (subdirectory on root)"
     else
-        echo "  /data:   not mounted"
+        echo "  /data:    not configured"
     end
     if mountpoint -q /storage 2>/dev/null
         df -h /storage | tail -1 | awk '{print "  /storage: " $3 " / " $2 " (" $5 ")"}'
+    else if test -d /storage
+        echo "  /storage: (subdirectory on root)"
     else
-        echo "  /storage: not mounted"
+        echo "  /storage: not configured"
+    end
+    if mountpoint -q /backups 2>/dev/null
+        df -h /backups | tail -1 | awk '{print "  /backups: " $3 " / " $2 " (" $5 ")"}'
+    else if test -d /backups
+        echo "  /backups: (subdirectory on root)"
+    else
+        echo "  /backups: not configured"
     end
     echo ""
 

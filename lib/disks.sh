@@ -41,11 +41,13 @@ show_disk_overview() {
 
   # Explanation of what we're doing
   section "Storage Configuration" \
-    "homekase needs two storage areas:
-  /data     — Apps, databases, Docker configs (fast storage preferred)
-  /storage  — Media files, photos, torrents, backups (large capacity preferred)
+    "homekase uses three storage areas:
+  /data     — Apps, databases, Docker configs (fast storage, SSD preferred)
+  /storage  — Media files, photos, torrents (large capacity, HDD is fine)
+  /backups  — Automated snapshots and incremental backups (separate disk ideal)
 
-You can put both on the same disk or use separate disks."
+You can put them on the same disk or use separate disks.
+Ideally, backups live on a different disk than the data they protect."
 
   # Show each disk with its partitions
   echo -e "${BOLD}Your disks and partitions:${NC}"
@@ -495,9 +497,16 @@ run_disk_setup() {
   echo ""
   if select_disk "/storage (media + photos)" STORAGE_DEVICE "skip"; then
     setup_disk_and_mount "$STORAGE_DEVICE" "$STORAGE_DIR"
-    mkdir -p "$STORAGE_DIR"/{media,torrents,photos,backups} 2>/dev/null || true
+    mkdir -p "$STORAGE_DIR"/{media,torrents,photos} 2>/dev/null || true
+  fi
+
+  echo ""
+  if select_disk "/backups (automated snapshots + incremental backups)" BACKUP_DEVICE "skip"; then
+    setup_disk_and_mount "$BACKUP_DEVICE" "$BACKUP_DIR"
+    mkdir -p "$BACKUP_DIR"/{snapshots,incremental} 2>/dev/null || true
   fi
 
   chown -R "$(get_user):$(get_user)" "$DATA_DIR" 2>/dev/null || true
   chown -R "$(get_user):$(get_user)" "$STORAGE_DIR" 2>/dev/null || true
+  chown -R "$(get_user):$(get_user)" "$BACKUP_DIR" 2>/dev/null || true
 }

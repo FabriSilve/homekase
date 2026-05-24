@@ -6,6 +6,7 @@
 HOMELAB_DIR="/opt/homelab"
 DATA_DIR="/data"
 STORAGE_DIR="/storage"
+BACKUP_DIR="/backups"
 
 # ── Repositories ──
 HOMEKASE_REPO="https://github.com/FabriSilve/homekase.git"
