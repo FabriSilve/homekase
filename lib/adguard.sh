@@ -113,7 +113,6 @@ RESOLV
   info "AdGuard dashboard: http://$server_ip:3000"
   info "Login: admin / $adguard_password"
   info "Credentials saved to $HOMELAB_DIR/traefik/.adguard.env"
-  info "Configure your router's DHCP to use $server_ip as DNS server"
 
   append_url "AdGuard Home  → http://dns.home"
 

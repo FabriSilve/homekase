@@ -78,7 +78,7 @@ main() {
 
   preflight_check curl git lsblk findmnt openssl parted || exit 1
 
-  local TOTAL_STEPS=12
+  local TOTAL_STEPS=13
   local STEP=0
 
   ((++STEP))
@@ -90,6 +90,10 @@ main() {
   header "Step ${STEP}/${TOTAL_STEPS}: Firewall & SSH"
   configure_firewall
   harden_ssh
+
+  ((++STEP))
+  header "Step ${STEP}/${TOTAL_STEPS}: Network Setup"
+  setup_static_ip
 
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Developer Tools"
