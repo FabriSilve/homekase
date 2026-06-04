@@ -10,14 +10,14 @@ install_shell_tools() {
   ok "Base shell tools installed"
 
   # Terminal multiplexer selection
-  local mux_choice
-  mux_choice=$(prompt_choose "Which terminal multiplexer do you want?" \
-    "zellij — Modern terminal workspace with built-in layouts" \
-    "Skip — I'll use tmux or my own")
-  if [[ "$mux_choice" == zellij* ]]; then
-    if is_installed zellij; then
-      info "zellij already installed"
-    else
+  if is_installed zellij; then
+    ok "Terminal multiplexer: zellij installed"
+  else
+    local mux_choice
+    mux_choice=$(prompt_choose "Which terminal multiplexer do you want?" \
+      "zellij — Modern terminal workspace with built-in layouts" \
+      "Skip — I'll use tmux or my own")
+    if [[ "$mux_choice" == zellij* ]]; then
       info "Installing zellij..."
       local ZELLIJ_VERSION
       ZELLIJ_VERSION=$(curl -s "https://api.github.com/repos/zellij-org/zellij/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
@@ -29,14 +29,14 @@ install_shell_tools() {
   fi
 
   # Git TUI selection
-  local git_choice
-  git_choice=$(prompt_choose "Which git tool do you want?" \
-    "lazygit — Terminal UI for git commands" \
-    "Skip — I'll use git CLI or my own tool")
-  if [[ "$git_choice" == lazygit* ]]; then
-    if is_installed lazygit; then
-      info "lazygit already installed"
-    else
+  if is_installed lazygit; then
+    ok "Git tool: lazygit installed"
+  else
+    local git_choice
+    git_choice=$(prompt_choose "Which git tool do you want?" \
+      "lazygit — Terminal UI for git commands" \
+      "Skip — I'll use git CLI or my own tool")
+    if [[ "$git_choice" == lazygit* ]]; then
       info "Installing lazygit..."
       local LAZYGIT_VERSION
       LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
@@ -48,14 +48,14 @@ install_shell_tools() {
   fi
 
   # File manager selection
-  local fm_choice
-  fm_choice=$(prompt_choose "Which terminal file manager do you want?" \
-    "yazi — Fast TUI file manager with preview" \
-    "Skip — I'll use ls/find or my own")
-  if [[ "$fm_choice" == yazi* ]]; then
-    if is_installed yazi; then
-      info "yazi already installed"
-    else
+  if is_installed yazi; then
+    ok "File manager: yazi installed"
+  else
+    local fm_choice
+    fm_choice=$(prompt_choose "Which terminal file manager do you want?" \
+      "yazi — Fast TUI file manager with preview" \
+      "Skip — I'll use ls/find or my own")
+    if [[ "$fm_choice" == yazi* ]]; then
       info "Installing yazi..."
       local YAZI_VERSION
       YAZI_VERSION=$(curl -s "https://api.github.com/repos/sxyazi/yazi/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
