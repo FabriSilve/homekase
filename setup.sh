@@ -61,6 +61,7 @@ if $DRY_RUN; then
   systemctl() { echo -e "${YELLOW}[DRY-RUN]${NC} systemctl $*"; }
   gum() { echo -e "${YELLOW}[DRY-RUN]${NC} gum $*"; }
   gpg() { echo -e "${YELLOW}[DRY-RUN]${NC} gpg $*"; }
+  tailscale() { echo -e "${YELLOW}[DRY-RUN]${NC} tailscale $*"; }
 fi
 
 main() {
@@ -94,6 +95,7 @@ main() {
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Network Setup"
   setup_static_ip
+  setup_tailscale
 
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Developer Tools"
@@ -109,6 +111,12 @@ main() {
   header "Step ${STEP}/${TOTAL_STEPS}: Docker"
   install_docker
   create_homelab_dirs
+  docker network create traefik-net 2>/dev/null || true
+  ok "traefik-net network ready"
+
+  ((++STEP))
+  header "Step ${STEP}/${TOTAL_STEPS}: DNS & Ad Blocking"
+  deploy_adguard
 
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Disk Setup"
@@ -117,10 +125,6 @@ main() {
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Reverse Proxy"
   deploy_traefik
-
-  ((++STEP))
-  header "Step ${STEP}/${TOTAL_STEPS}: DNS & Ad Blocking"
-  deploy_adguard
 
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Services"
@@ -184,6 +188,14 @@ generate_summary() {
   echo ""
   echo -e "  ${YELLOW}Next step:${NC} Log out and back in to start using fish."
   echo ""
+
+  if command -v tailscale >/dev/null 2>&1; then
+    local ts_ip
+    ts_ip=$(tailscale ip -4 2>/dev/null || true)
+    if [ -n "$ts_ip" ]; then
+      echo -e "  ${CYAN}Remote access (Tailscale):${NC}  http://${ts_ip}:8090"
+    fi
+  fi
 
   if [ -f "$HOMELAB_DIR/urls.txt" ]; then
     echo -e "  ${YELLOW}DNS setup:${NC} Configure your router's DHCP"
