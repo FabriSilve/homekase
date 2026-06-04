@@ -34,3 +34,46 @@ setup() {
   # Should show the detection menu and fail at selection
   assert_failure
 }
+
+@test "luks: setup_luks_auto_unlock exits silently when no crypt devices exist" {
+  lsblk() { echo "disk sda"; }
+  export -f lsblk
+  run setup_luks_auto_unlock
+  assert_success
+  assert_output ""
+}
+
+@test "luks: setup_luks_auto_unlock warns when LUKS found but no TPM2 hardware" {
+  lsblk() {
+    if [[ "$*" == *"-s"* ]]; then echo "part sda5"
+    else echo "crypt sda5_crypt"
+    fi
+  }
+  export -f lsblk
+  unset TPM2_TEST_OVERRIDE
+  run setup_luks_auto_unlock
+  assert_success
+  assert_output --partial "passphrase required every"
+}
+
+@test "luks: setup_luks_auto_unlock skips device already enrolled with TPM2" {
+  local tmpdir tpm_file
+  tmpdir=$(mktemp -d)
+  tpm_file=$(mktemp)
+  # Fake systemd-cryptenroll binary (hyphen prevents export -f)
+  printf '#!/bin/bash\necho "0: tpm2"\n' > "$tmpdir/systemd-cryptenroll"
+  chmod +x "$tmpdir/systemd-cryptenroll"
+  export PATH="$tmpdir:$PATH"
+  export TPM2_TEST_OVERRIDE="$tpm_file"
+  lsblk() {
+    if [[ "$*" == *"-s"* ]]; then echo "part sda5"
+    else echo "crypt sda5_crypt"
+    fi
+  }
+  cryptsetup() { echo "Keyslots: tpm2"; }
+  export -f lsblk cryptsetup
+  run setup_luks_auto_unlock
+  assert_success
+  assert_output --partial "already enrolled"
+  rm -rf "$tmpdir" "$tpm_file"
+}

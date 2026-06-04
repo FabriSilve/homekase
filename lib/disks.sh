@@ -495,6 +495,62 @@ setup_erase_lvm_and_mount() {
   ok "$mount_point ready (20% unallocated for future expansion)"
 }
 
+setup_luks_auto_unlock() {
+  local luks_devices=()
+  while IFS= read -r crypt_name; do
+    [ -z "$crypt_name" ] && continue
+    local backing
+    backing=$(lsblk -s -ln -o TYPE,NAME "/dev/mapper/$crypt_name" 2>/dev/null \
+      | awk '$1=="part"{print "/dev/"$2}')
+    [ -n "$backing" ] && luks_devices+=("$backing")
+  done < <(lsblk -ln -o TYPE,NAME 2>/dev/null | awk '$1=="crypt"{print $2}')
+
+  [ ${#luks_devices[@]} -eq 0 ] && return 0
+
+  if [ ! -e "${TPM2_TEST_OVERRIDE:-/dev/tpm0}" ]; then
+    warn "Encrypted disk found — passphrase required every time the server boots."
+    warn "No TPM2 chip detected. Consider Dropbear SSH for remote unlock."
+    return 0
+  fi
+
+  if ! systemd-cryptenroll --tpm2-device=list >/dev/null 2>&1; then
+    if ! prompt_yes_no "TPM2 chip found but tpm2-tools not installed. Install now?"; then
+      warn "Passphrase required every boot. Run setup again after installing tpm2-tools to enable auto-unlock."
+      return 0
+    fi
+    apt install -y -qq tpm2-tools
+  fi
+
+  section "Disk Encryption Auto-Unlock" \
+"An encrypted disk was found. Without action, a passphrase must be entered every time
+the server boots. With TPM2 auto-unlock, the server decrypts automatically on a clean
+boot — the TPM chip seals the key and releases it only when firmware is unmodified.
+If the disk is stolen without the TPM chip, it stays locked."
+
+  local any_enrolled=false
+  for dev in "${luks_devices[@]}"; do
+    if cryptsetup luksDump "$dev" 2>/dev/null | grep -qi "tpm2"; then
+      info "TPM2 already enrolled for $dev — skipping."
+      continue
+    fi
+
+    if prompt_yes_no "Enable TPM2 auto-unlock for $dev?"; then
+      if systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+7 "$dev"; then
+        ok "TPM2 enrolled for $dev. Server will boot without passphrase prompt."
+        any_enrolled=true
+      else
+        error "Enrollment failed for $dev. Passphrase still required."
+      fi
+    else
+      warn "$dev: passphrase will be required every boot."
+    fi
+  done
+
+  if $any_enrolled; then
+    run_with_spinner "Updating initramfs..." update-initramfs -u
+  fi
+}
+
 run_disk_setup() {
   show_disk_overview
 
@@ -518,4 +574,6 @@ run_disk_setup() {
   chown -R "$(get_user):$(get_user)" "$DATA_DIR" 2>/dev/null || true
   chown -R "$(get_user):$(get_user)" "$STORAGE_DIR" 2>/dev/null || true
   chown -R "$(get_user):$(get_user)" "$BACKUP_DIR" 2>/dev/null || true
+
+  setup_luks_auto_unlock
 }
