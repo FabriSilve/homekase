@@ -65,11 +65,45 @@ harden_ssh() {
     return
   fi
 
-  warn "Make sure you have SSH key access before proceeding!"
-  warn "If you only use password login, you will be locked out."
-  if ! prompt_yes_no "I confirm I have SSH key access configured" "n"; then
-    warn "SSH hardening aborted — set up SSH keys first"
-    return
+  local ssh_user authorized_keys
+  ssh_user=$(get_user)
+  authorized_keys="$(get_home)/.ssh/authorized_keys"
+
+  if [ -s "$authorized_keys" ]; then
+    local key_count
+    key_count=$(grep -cEc '^(ssh-|ecdsa-|sk-ecdsa-|sk-ssh-|rsa-)' "$authorized_keys" 2>/dev/null || true)
+    if [ "$key_count" -gt 0 ]; then
+      ok "Found $key_count SSH public key(s) for user '$ssh_user'"
+    else
+      warn "authorized_keys exists but contains no valid public keys"
+      key_count=0
+    fi
+  else
+    key_count=0
+  fi
+
+  if [ "$key_count" -eq 0 ]; then
+    warn "No SSH public keys found for user '$ssh_user'"
+    warn "If you disable password auth now, you will be locked out."
+    echo ""
+    if prompt_yes_no "Paste your SSH public key now?" "y"; then
+      local pubkey
+      read -r -p "Paste your public key (ssh-ed25519 AAAA...): " pubkey
+      if [ -n "$pubkey" ]; then
+        mkdir -p "$(dirname "$authorized_keys")"
+        echo "$pubkey" >> "$authorized_keys"
+        chmod 700 "$(dirname "$authorized_keys")"
+        chmod 600 "$authorized_keys"
+        chown -R "$ssh_user:" "$(dirname "$authorized_keys")"
+        ok "Public key added to $authorized_keys"
+      else
+        warn "No key provided — SSH hardening aborted"
+        return
+      fi
+    else
+      warn "SSH hardening aborted — set up SSH keys first"
+      return
+    fi
   fi
 
   local sshd_config="/etc/ssh/sshd_config"
