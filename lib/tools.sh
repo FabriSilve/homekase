@@ -4,7 +4,7 @@ install_shell_tools() {
   header "Shell & Terminal Tools"
 
   # Base packages always installed (fish, fzf, bat, ripgrep needed by system)
-  local packages=(fish fzf bat ripgrep unzip)
+  local packages=(fish fzf bat ripgrep unzip btop jq mtr ncdu)
   info "Installing base shell tools..."
   apt install -y -qq "${packages[@]}"
   ok "Base shell tools installed"
