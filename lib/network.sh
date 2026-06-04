@@ -78,6 +78,17 @@ setup_static_ip() {
   gateway=$(ip route | awk '/default/{print $3; exit}')
   mac=$(ip link show "$interface" | awk '/ether/{print $2}')
 
+  # If Ethernet has no IP but WiFi does, keep the Ethernet interface but hint at the subnet
+  local subnet_hint=""
+  if [ -z "$current_ip" ]; then
+    local gw_iface gw_ip
+    gw_iface=$(ip route | awk '/default/{print $5; exit}')
+    gw_ip=$(ip -4 addr show "$gw_iface" 2>/dev/null | awk '/inet /{print $2}')
+    if [ -n "$gw_ip" ] && [ "$gw_iface" != "$interface" ]; then
+      subnet_hint=$(echo "$gw_ip" | sed 's/\.[0-9]*\/\(.*\)/.X\/\1/')
+    fi
+  fi
+
   if [ -f "$netplan_file" ]; then
     info "Static IP already configured ($netplan_file)"
     show_router_instructions "$interface" "$current_ip" "$gateway" "$mac"
@@ -89,9 +100,23 @@ setup_static_ip() {
 Without it, the IP may change on router restart, breaking DNS and all services."
 
   info "Interface:   $interface"
-  info "Current IP:  $current_ip"
+  info "Current IP:  ${current_ip:-not assigned}"
   info "Gateway:     $gateway"
   info "MAC address: $mac"
+
+  if [ -z "$current_ip" ]; then
+    warn "Ethernet ($interface) has no IP yet — you're likely connected via WiFi."
+    info "Your gateway is $gateway — use an IP in that subnet."
+    local default_hint="${subnet_hint:-192.168.1.100/24}"
+    local manual_ip
+    manual_ip=$(prompt_input "Enter the static IP for $interface" "$default_hint")
+    if [ -z "$manual_ip" ]; then
+      warn "No IP provided — static IP skipped"
+      show_router_instructions "$interface" "$current_ip" "$gateway" "$mac"
+      return 0
+    fi
+    current_ip="$manual_ip"
+  fi
 
   if ! prompt_yes_no "Configure static IP ${current_ip%%/*} on $interface?"; then
     warn "Static IP skipped — server IP may change and break services."
@@ -117,6 +142,7 @@ network:
           - 8.8.8.8
 NETPLAN
 
+  chmod 600 "$netplan_file"
   netplan apply
   ok "Static IP ${current_ip%%/*} configured on $interface"
   show_router_instructions "$interface" "$current_ip" "$gateway" "$mac"
