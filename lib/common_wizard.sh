@@ -4,11 +4,14 @@
 # Requires: gum installed and available in PATH.
 
 header() {
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 80)
   echo ""
   gum style \
     --border rounded \
     --border-foreground 212 \
     --padding "0 2" \
+    --width "$((term_width - 4))" \
     --bold \
     "$1"
   echo ""
@@ -17,11 +20,14 @@ header() {
 section() {
   local title="$1"
   local description="$2"
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 80)
   echo ""
   gum style \
     --border rounded \
     --border-foreground 212 \
     --padding "1 2" \
+    --width "$((term_width - 4))" \
     --bold \
     "${title}" \
     "" \
