@@ -66,6 +66,21 @@ install_shell_tools() {
     fi
   fi
 
+  # Docker TUI selection
+  if is_installed lazydocker; then
+    ok "Docker tool: lazydocker installed"
+  else
+    local docker_choice
+    docker_choice=$(prompt_choose "Which Docker tool do you want?" \
+      "lazydocker — Terminal UI for Docker and docker-compose" \
+      "Skip — I'll use docker CLI or my own tool")
+    if [[ "$docker_choice" == lazydocker* ]]; then
+      info "Installing lazydocker..."
+      curl -fsSL https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+      ok "lazydocker installed"
+    fi
+  fi
+
   # GitHub CLI (not optional — needed for runner setup)
   if is_installed gh; then
     info "GitHub CLI already installed"
