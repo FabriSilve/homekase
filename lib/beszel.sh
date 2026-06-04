@@ -21,7 +21,7 @@ services:
     ports:
       - "8090:8090"
     volumes:
-      - /data/config/beszel:/beszel/data
+      - /data/config/beszel:/data
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.beszel.rule=Host(\`monitoring.home\`)"
