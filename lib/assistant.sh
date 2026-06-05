@@ -128,11 +128,11 @@ deploy_assistant() {
   else
     info "Cloning assistant..."
     if is_installed gh && gh auth status 2>/dev/null; then
-      gh repo clone FabriSilve/homekase-assistant "$ASSISTANT_DIR"
+      gh repo clone FabriSilve/server-assistant "$ASSISTANT_DIR"
     else
       local gh_token
       gh_token=$(prompt_secret "GitHub personal access token (classic, with repo scope)")
-      git clone --depth=1 "https://FabriSilve:${gh_token}@github.com/FabriSilve/homekase-assistant.git" "$ASSISTANT_DIR"
+      git clone --depth=1 "https://FabriSilve:${gh_token}@github.com/FabriSilve/server-assistant.git" "$ASSISTANT_DIR"
     fi
   fi
 

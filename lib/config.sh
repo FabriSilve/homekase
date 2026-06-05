@@ -10,7 +10,7 @@ BACKUP_DIR="/backups"
 
 # ── Repositories ──
 HOMEKASE_REPO="https://github.com/FabriSilve/homekase.git"
-ASSISTANT_REPO="https://github.com/FabriSilve/homekase-assistant.git"
+ASSISTANT_REPO="https://github.com/FabriSilve/server-assistant.git"
 
 # ── AI Assistant ──
 # Model tiers: qwen2.5:14b (excellent), qwen2.5:7b (good), qwen2.5:3b (basic)
