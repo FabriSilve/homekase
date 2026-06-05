@@ -63,6 +63,9 @@ router_dns_config() {
 
 tailscale_dns_config() {
   local ts_ip="$1"
+  local lan_ip
+  lan_ip=$(hostname -I | awk '{print $1}')
+
   warn "Your router does not support custom DNS — using Tailscale DNS routes instead."
   echo ""
   echo -e "  ${BOLD}Step 1: Configure Tailscale DNS routes${NC}"
@@ -70,14 +73,14 @@ tailscale_dns_config() {
   echo -e "  Under ${BOLD}Nameservers${NC}, add: ${ts_ip}"
   echo -e "  Restrict to domain: ${BOLD}home${NC}"
   echo ""
-  echo -e "  ${BOLD}Step 2: Connect your devices${NC}"
-  echo -e "  Install Tailscale on your phone and laptop."
+  echo -e "  ${BOLD}Step 2 (Tailscale devices):${NC}"
   echo -e "  Enable ${BOLD}Use Tailscale DNS${NC} in the client settings."
-  echo -e "  Then ${CYAN}.home${NC} URLs will work through Tailscale."
+  echo -e "  Then ${CYAN}.home${NC} URLs resolve through Tailscale."
   echo ""
-  echo -e "  ${BOLD}LAN devices without Tailscale${NC}"
-  echo -e "  Edit ${BOLD}/etc/hosts${NC} on your laptop:"
-  echo -e "  ${ts_ip}  monitoring.home dns.home jellyfin.home photos.home"
+  echo -e "  ${BOLD}Step 3 (LAN devices without Tailscale):${NC}"
+  echo -e "  Edit ${BOLD}/etc/hosts${NC} on your laptop (use LAN IP, not Tailscale IP):"
+  echo -e "  ${lan_ip}  monitoring.home dns.home jellyfin.home photos.home"
+  echo -e "  ${lan_ip}  torrent.home sync.home"
   echo ""
   echo -e "  ${BOLD}Remote access (Tailscale):${NC}"
   echo -e "  http://${ts_ip}:8090   — Beszel monitoring"
