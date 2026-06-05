@@ -56,6 +56,41 @@ configure_firewall() {
   ok "Firewall configured (SSH, HTTP, HTTPS, DNS)"
 }
 
+setup_swap() {
+  section "Swap File (Optional)" \
+    "A swap file acts as an emergency buffer when RAM fills up.
+Without it, the system may randomly kill services when memory spikes."
+
+  if [ -f /swapfile ]; then
+    local current_size
+    current_size=$(ls -lh /swapfile | awk '{print $5}')
+    ok "Swap file already exists ($current_size)"
+    return
+  fi
+
+  if ! prompt_yes_no "Create a 6GB swap file?"; then
+    info "Swap file skipped"
+    return
+  fi
+
+  info "Creating 6GB swap file..."
+  fallocate -l 6G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile >/dev/null
+  swapon /swapfile
+
+  if ! grep -q '/swapfile' /etc/fstab; then
+    cp /etc/fstab /etc/fstab.bak
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  fi
+
+  sysctl vm.swappiness=10 >/dev/null
+  mkdir -p /etc/sysctl.d
+  echo 'vm.swappiness=10' > /etc/sysctl.d/99-swap.conf
+
+  ok "Swap file created (6G, swappiness=10)"
+}
+
 harden_ssh() {
   section "SSH Hardening (Optional)" \
     "This will: disable root login, disable password authentication (key-only), and install fail2ban to block brute-force attempts."
