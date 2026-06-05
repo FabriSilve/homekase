@@ -114,6 +114,23 @@ main() {
   docker network create traefik-net 2>/dev/null || true
   ok "traefik-net network ready"
 
+  # Limit container logs to 10MB to prevent disk from filling up
+  local docker_daemon="/etc/docker/daemon.json"
+  if [ ! -f "$docker_daemon" ] || ! grep -q "max-size" "$docker_daemon" 2>/dev/null; then
+    mkdir -p /etc/docker
+    cat > "$docker_daemon" << 'DAEMON'
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+DAEMON
+    systemctl restart docker
+    ok "Docker log limit set (10MB per container)"
+  fi
+
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: DNS & Ad Blocking"
   deploy_adguard
@@ -121,6 +138,7 @@ main() {
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Disk Setup"
   run_disk_setup
+  setup_swap
 
   ((++STEP))
   header "Step ${STEP}/${TOTAL_STEPS}: Reverse Proxy"
