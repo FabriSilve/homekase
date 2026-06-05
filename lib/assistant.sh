@@ -154,6 +154,7 @@ deploy_assistant() {
   mkdir -p /data/config/assistant
   cat > /data/config/assistant/.env << ENV
 OLLAMA_MODEL=${model_name}
+OLLAMA_KEEP_ALIVE=5m
 ENV
 
   # Build and start
