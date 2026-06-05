@@ -354,24 +354,36 @@ setup_lvm_volume_and_mount() {
     return 1
   fi
 
-  if [[ "$lv_size" == *%* ]]; then
-    lvcreate -l "$lv_size" -n "$lv_name" "$vg_name"
+  if lvdisplay "${vg_name}/${lv_name}" &>/dev/null; then
+    warn "LV $lv_name already exists — reusing it"
+    if prompt_yes_no "Reformat (wipe) existing LV $lv_name?" "n"; then
+      info "Reformatting ${vg_name}/${lv_name}..."
+      mkfs.ext4 -q "/dev/${vg_name}/${lv_name}"
+    fi
   else
-    lvcreate -L "$lv_size" -n "$lv_name" "$vg_name"
+    if [[ "$lv_size" == *%* ]]; then
+      lvcreate -l "$lv_size" -n "$lv_name" "$vg_name"
+    else
+      lvcreate -L "$lv_size" -n "$lv_name" "$vg_name"
+    fi
+    info "Formatting new LV as ext4..."
+    mkfs.ext4 -q "/dev/${vg_name}/${lv_name}"
   fi
 
   local lv_path="/dev/$vg_name/$lv_name"
-  info "Formatting $lv_path as ext4..."
-  mkfs.ext4 -q "$lv_path"
 
   mkdir -p "$mount_point"
 
-  if ! grep -qF "$mount_point" /etc/fstab; then
+  # Uncomment or add fstab entry
+  if grep -qs "# # reset: .* $mount_point " /etc/fstab 2>/dev/null; then
+    sed -i "\| $mount_point |s|^# # reset: ||" /etc/fstab
+    ok "Restored $mount_point in /etc/fstab"
+  elif ! grep -qs " $mount_point " /etc/fstab 2>/dev/null; then
     cp /etc/fstab /etc/fstab.bak
     echo "$lv_path $mount_point ext4 defaults 0 2" >> /etc/fstab
   fi
 
-  mount "$mount_point"
+  mount "$lv_path" "$mount_point" 2>/dev/null || mount "$mount_point"
   ok "$mount_point ready on $lv_path"
 }
 
@@ -626,9 +638,8 @@ OS, boot, and root partitions are preserved untouched. Use before re-running dis
     [ -z "$vg" ] && continue
     for lv in data backups storage; do
       if lvdisplay "${vg}/${lv}" &>/dev/null; then
-        local lv_path
-        lv_path=$(lvdisplay -c "${vg}/${lv}" 2>/dev/null | awk -F: '{print $1}')
-        lvremove --yes "${vg}/${lv}" && ok "Removed LV ${vg}/${lv}"
+        lvchange -an "${vg}/${lv}" 2>/dev/null || true
+        lvremove --yes --force "${vg}/${lv}" && ok "Removed LV ${vg}/${lv}"
       fi
     done
   done < <(vgs --noheadings -o vg_name 2>/dev/null | tr -d ' ')
