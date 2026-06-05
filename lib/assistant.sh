@@ -68,20 +68,47 @@ deploy_assistant() {
   services_ram=$(estimate_services_ram)
   local available_ram=$((total_ram - services_ram))
 
-  # Get model recommendation
-  local recommendation
-  recommendation=$(recommend_model "$available_ram")
-  local model_name model_ram quality
-  model_name=$(echo "$recommendation" | cut -d' ' -f1)
-  model_ram=$(echo "$recommendation" | cut -d' ' -f2)
-  quality=$(echo "$recommendation" | cut -d' ' -f3)
-
   info "System RAM: $((total_ram / 1024))GB total, ~$((services_ram / 1024))GB used by services"
   info "Available for AI: ~$((available_ram / 1024))GB"
 
-  if [ "$model_name" = "none" ]; then
+  # Build model options based on available RAM
+  local model_options=()
+  local model_names=()
+  if [ "$available_ram" -ge "${ASSISTANT_RAM_EXCELLENT:-12288}" ]; then
+    model_options+=("qwen2.5:14b — ~12GB RAM — excellent quality, reliable tool calling, good summarization")
+    model_names+=("qwen2.5:14b")
+  fi
+  if [ "$available_ram" -ge "${ASSISTANT_RAM_GOOD:-7168}" ]; then
+    model_options+=("qwen2.5:7b — ~7GB RAM — good quality, solid tool calling, decent summarization")
+    model_names+=("qwen2.5:7b")
+  fi
+  if [ "$available_ram" -ge "${ASSISTANT_RAM_BASIC:-4096}" ]; then
+    model_options+=("qwen2.5:3b — ~4GB RAM — basic quality, simple tasks OK, may struggle with complex tasks")
+    model_names+=("qwen2.5:3b")
+  fi
+  model_options+=("skip — Don't deploy AI Assistant")
+  model_names+=("skip")
+
+  if [ ${#model_options[@]} -eq 1 ]; then
     warn "Not enough RAM for AI Assistant (need at least 4GB free, have $((available_ram / 1024))GB)"
-    warn "Consider disabling some services or upgrading RAM"
+    info "AI Assistant skipped"
+    return
+  fi
+
+  echo ""
+  local model_choice
+  model_choice=$(prompt_choose "Which AI model do you want?" "${model_options[@]}")
+
+  # Map choice back to model name
+  local model_name=""
+  for i in "${!model_options[@]}"; do
+    if [[ "${model_options[$i]}" == "$model_choice" ]]; then
+      model_name="${model_names[$i]}"
+      break
+    fi
+  done
+
+  if [ "$model_name" = "skip" ] || [ -z "$model_name" ]; then
     info "AI Assistant skipped"
     return
   fi
@@ -114,7 +141,13 @@ deploy_assistant() {
     git -C "$ASSISTANT_DIR" pull --quiet
   else
     info "Cloning assistant..."
-    git clone --depth=1 "$ASSISTANT_REPO" "$ASSISTANT_DIR"
+    if is_installed gh && gh auth status 2>/dev/null; then
+      gh repo clone FabriSilve/homekase-assistant "$ASSISTANT_DIR"
+    else
+      local gh_token
+      gh_token=$(prompt_secret "GitHub personal access token (classic, with repo scope)")
+      git clone --depth=1 "https://FabriSilve:${gh_token}@github.com/FabriSilve/homekase-assistant.git" "$ASSISTANT_DIR"
+    fi
   fi
 
   # Write model config
