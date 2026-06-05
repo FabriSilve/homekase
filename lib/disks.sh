@@ -293,11 +293,11 @@ setup_disk_and_mount() {
   strategy=$(prompt_choose "How do you want to set up $mount_point on $device?" "${strategies[@]}")
 
   case "$strategy" in
-    lvm*)       setup_lvm_volume_and_mount "$device" "$mount_point" ;;
-    reformat:*) setup_reformat_and_mount "$strategy" "$mount_point" ;;
-    partition*) setup_partition_and_mount "$device" "$mount_point" ;;
-    directory*) setup_directory "$mount_point" ;;
-    erase*)     setup_erase_lvm_and_mount "$device" "$mount_point" ;;
+    lvm*)       setup_lvm_volume_and_mount "$device" "$mount_point" || warn "Failed to set up $mount_point on $device" ;;
+    reformat:*) setup_reformat_and_mount "$strategy" "$mount_point" || warn "Failed to set up $mount_point on $device" ;;
+    partition*) setup_partition_and_mount "$device" "$mount_point" || warn "Failed to set up $mount_point on $device" ;;
+    directory*) setup_directory "$mount_point" || warn "Failed to set up $mount_point on $device" ;;
+    erase*)     setup_erase_lvm_and_mount "$device" "$mount_point" || warn "Failed to set up $mount_point on $device" ;;
     skip*)      warn "Skipped $mount_point setup"; return 0 ;;
   esac
 
@@ -671,23 +671,23 @@ OS, boot, and root partitions are preserved untouched. Use before re-running dis
 }
 
 run_disk_setup() {
-  reset_disks
+  reset_disks || true
   show_disk_overview
 
   if select_disk "/data (apps + databases)" DATA_DEVICE; then
-    setup_disk_and_mount "$DATA_DEVICE" "$DATA_DIR"
+    setup_disk_and_mount "$DATA_DEVICE" "$DATA_DIR" || true
     mkdir -p "$DATA_DIR"/{databases,config,apps} 2>/dev/null || true
   fi
 
   echo ""
   if select_disk "/storage (media + photos)" STORAGE_DEVICE "skip"; then
-    setup_disk_and_mount "$STORAGE_DEVICE" "$STORAGE_DIR"
+    setup_disk_and_mount "$STORAGE_DEVICE" "$STORAGE_DIR" || true
     mkdir -p "$STORAGE_DIR"/{media,torrents,photos} 2>/dev/null || true
   fi
 
   echo ""
   if select_disk "/backups (automated snapshots + incremental backups)" BACKUP_DEVICE "skip"; then
-    setup_disk_and_mount "$BACKUP_DEVICE" "$BACKUP_DIR"
+    setup_disk_and_mount "$BACKUP_DEVICE" "$BACKUP_DIR" || true
     mkdir -p "$BACKUP_DIR"/{snapshots,incremental} 2>/dev/null || true
   fi
 

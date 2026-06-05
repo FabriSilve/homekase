@@ -38,11 +38,20 @@ for lib in "$SCRIPT_DIR"/lib/*.sh; do
 done
 
 DRY_RUN=false
+DEBUG=false
 for arg in "$@"; do
   if [ "$arg" = "--dry-run" ] || [ "$arg" = "--check" ]; then
     DRY_RUN=true
+  elif [ "$arg" = "--debug" ] || [ "$arg" = "-x" ]; then
+    DEBUG=true
+    set -x
   fi
 done
+
+if ! $DRY_RUN; then
+  # Print a clear message before exiting on error
+  trap 'echo -e "\n${RED}✗ Script failed at line $LINENO — see above for the failing command.${NC}"' ERR
+fi
 
 if $DRY_RUN; then
   # Override destructive commands in dry-run mode
