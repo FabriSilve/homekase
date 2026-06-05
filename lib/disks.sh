@@ -583,7 +583,82 @@ If the disk is stolen without the TPM chip, it stays locked."
   fi
 }
 
+reset_disks() {
+  section "Reset Disk Setup" \
+    "Destroy all data on /storage, /data, and /backups and reset them to raw/unallocated space.
+OS, boot, and root partitions are preserved untouched. Use before re-running disk setup."
+
+  if ! prompt_yes_no "Reset disks (destroy all data on /storage, /data, /backups)?" "n"; then
+    info "Disk reset skipped"
+    return 0
+  fi
+
+  if ! prompt_yes_no "IRREVERSIBLE — all data on these mount points will be lost. Continue?" "n"; then
+    info "Disk reset skipped"
+    return 0
+  fi
+
+  # 1. Unmount all homelab mount points
+  for mp in "$BACKUP_DIR" "$DATA_DIR" "$STORAGE_DIR"; do
+    if mountpoint -q "$mp" 2>/dev/null; then
+      umount "$mp" && ok "Unmounted $mp" || warn "Failed to unmount $mp"
+    fi
+  done
+
+  # 2. Remove swap file if present
+  if [ -f /swapfile ]; then
+    swapoff /swapfile 2>/dev/null || true
+    rm -f /swapfile
+    ok "Removed /swapfile"
+  fi
+
+  # 3. Comment out fstab entries for homelab mount points + swap
+  for mp in "$BACKUP_DIR" "$DATA_DIR" "$STORAGE_DIR" /swapfile; do
+    if grep -qs " $mp " /etc/fstab 2>/dev/null; then
+      sed -i "\| $mp |s|^|# # reset: |" /etc/fstab
+      ok "Commented out $mp entry in /etc/fstab"
+    fi
+  done
+
+  # 4. Remove LVs for data + backups + storage across all VGs
+
+  while IFS= read -r vg; do
+    [ -z "$vg" ] && continue
+    for lv in data backups storage; do
+      if lvdisplay "${vg}/${lv}" &>/dev/null; then
+        local lv_path
+        lv_path=$(lvdisplay -c "${vg}/${lv}" 2>/dev/null | awk -F: '{print $1}')
+        lvremove --yes "${vg}/${lv}" && ok "Removed LV ${vg}/${lv}"
+      fi
+    done
+  done < <(vgs --noheadings -o vg_name 2>/dev/null | tr -d ' ')
+
+  # 5. Remove PV + VG on sda (or any non-nvme root disk)
+  for dev in /dev/sd?; do
+    [ -b "$dev" ] || continue
+    # Skip if it's a partition
+    [[ "$dev" =~ [0-9]$ ]] && continue
+    local pv_vg
+    pv_vg=$(pvs --noheadings -o vg_name "$dev" 2>/dev/null | tr -d ' ')
+    if [ -n "$pv_vg" ]; then
+      vgremove --yes "$pv_vg" 2>/dev/null && ok "Removed VG $pv_vg on $dev"
+    fi
+    pvremove --yes "$dev" 2>/dev/null && ok "Removed PV on $dev"
+  done
+
+  # 6. Reset swappiness back to default
+  if [ -f /etc/sysctl.d/99-swap.conf ]; then
+    rm -f /etc/sysctl.d/99-swap.conf && ok "Removed swappiness config"
+    sysctl -w vm.swappiness=60 >/dev/null
+  fi
+
+  info "Disk reset complete. All mount points are freed."
+  echo ""
+  show_disk_overview
+}
+
 run_disk_setup() {
+  reset_disks
   show_disk_overview
 
   if select_disk "/data (apps + databases)" DATA_DEVICE; then
