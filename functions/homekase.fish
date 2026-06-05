@@ -158,8 +158,16 @@ function __homekase_create_app -a app_name
 end
 
 function __homekase_update
-    echo ":: Updating homekase..."
+    echo "━━━ homekase update ━━━"
+    echo ""
 
+    # 1. System packages
+    echo "── Updating system packages ──"
+    sudo apt update -qq
+    sudo apt upgrade -y -qq
+    echo ""
+
+    # 2. Clone latest repo to get fresh functions and libs
     if not command -v git >/dev/null 2>&1
         echo "! git is required. Install it first."
         return 1
@@ -172,12 +180,86 @@ function __homekase_update
         return 1
     end
 
-    cd "$tmp_dir"
-    if test -f "setup.sh"
-        sudo bash setup.sh
+    # 3. Update curl-installed tools (force latest)
+    if test -x "$tmp_dir/lib/tools.sh"
+        echo "── Updating terminal tools ──"
+
+        # zellij
+        set -l ZELLIJ_VERSION (curl -s "https://api.github.com/repos/zellij-org/zellij/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+        if test -n "$ZELLIJ_VERSION"
+            curl -fsSL "https://github.com/zellij-org/zellij/releases/download/v$ZELLIJ_VERSION/zellij-x86_64-unknown-linux-musl.tar.gz" -o /tmp/zellij.tar.gz
+            and sudo tar xzf /tmp/zellij.tar.gz -C /tmp
+            and sudo mv /tmp/zellij /usr/local/bin/zellij
+            and echo "  ✓ zellij $ZELLIJ_VERSION"
+        end
+
+        # lazygit
+        set -l LAZYGIT_VERSION (curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+        if test -n "$LAZYGIT_VERSION"
+            curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v$LAZYGIT_VERSION/lazygit_$LAZYGIT_VERSION"_Linux_x86_64.tar.gz -o /tmp/lazygit.tar.gz
+            and sudo tar xzf /tmp/lazygit.tar.gz -C /tmp
+            and sudo mv /tmp/lazygit /usr/local/bin/lazygit
+            and echo "  ✓ lazygit $LAZYGIT_VERSION"
+        end
+
+        # lazydocker
+        curl -fsSL https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | sudo bash
+        and echo "  ✓ lazydocker updated"
+
+        # yazi
+        set -l YAZI_VERSION (curl -s "https://api.github.com/repos/sxyazi/yazi/releases/latest" | grep -Po '"tag_name": "v\K[^"]*')
+        if test -n "$YAZI_VERSION"
+            curl -fsSL "https://github.com/sxyazi/yazi/releases/download/v$YAZI_VERSION/yazi-x86_64-unknown-linux-gnu.zip" -o /tmp/yazi.zip
+            and sudo unzip -q -o /tmp/yazi.zip -d /tmp
+            and sudo mv "/tmp/yazi-x86_64-unknown-linux-gnu/yazi" /usr/local/bin/yazi
+            and echo "  ✓ yazi $YAZI_VERSION"
+        end
+
+        # neovim
+        sudo curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" -o /tmp/nvim.tar.gz
+        and sudo rm -rf /opt/nvim-linux-x86_64
+        and sudo tar xzf /tmp/nvim.tar.gz -C /opt
+        and sudo ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+        and echo "  ✓ neovim updated"
+
+        # starship
+        curl -fsSL https://starship.rs/install.sh | sudo sh -s -- -y
+        and echo "  ✓ starship updated"
     end
-    cd -
+
+    # 4. Update homekase fish function from repo
+    echo "── Updating homekase CLI ──"
+    set -l func_dir ~/.config/fish/functions
+    mkdir -p "$func_dir"
+    cp "$tmp_dir/functions/homekase.fish" "$func_dir/homekase.fish"
+    and echo "  ✓ homekase.fish updated"
+
+    # 5. Docker images — pull latest for all compose stacks
+    echo "── Updating Docker services ──"
+    for compose_file in (find /opt/homelab -name docker-compose.yml -maxdepth 2 2>/dev/null)
+        set -l dir (dirname "$compose_file")
+        echo "  Pulling images in $dir..."
+        docker compose -f "$compose_file" pull --quiet 2>/dev/null
+        docker compose -f "$compose_file" up -d 2>/dev/null
+    end
+
+    # 6. Assistant — git pull + rebuild
+    if test -d /opt/homelab/assistant
+        echo ""
+        echo "── Updating AI Assistant ──"
+        git -C /opt/homelab/assistant pull --quiet
+        docker compose -f /opt/homelab/assistant/docker-compose.yml build --quiet
+        docker compose -f /opt/homelab/assistant/docker-compose.yml up -d
+    end
+
+    # 7. Clean up old Docker images
+    docker image prune -f 2>/dev/null
+
+    # 8. Clean up temp files
     rm -rf "$tmp_dir"
+
+    echo ""
+    echo "✓ homekase is up to date"
 end
 
 function __homekase_status
