@@ -77,7 +77,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.adguard.rule=Host(`dns.home`)"
-      - "traefik.http.routers.adguard.entrypoints=web"
+      - "traefik.http.routers.adguard.entrypoints=web,websecure"
+      - "traefik.http.routers.adguard.tls=true"
       - "traefik.http.services.adguard.loadbalancer.server.port=3000"
     networks:
       - traefik-net

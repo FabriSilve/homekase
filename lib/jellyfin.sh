@@ -28,7 +28,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jellyfin.rule=Host(\`jellyfin.home\`)"
-      - "traefik.http.routers.jellyfin.entrypoints=web"
+      - "traefik.http.routers.jellyfin.entrypoints=web,websecure"
+      - "traefik.http.routers.jellyfin.tls=true"
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
     networks:
       - traefik-net

@@ -55,7 +55,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.qbittorrent.rule=Host(`torrent.home`)"
-      - "traefik.http.routers.qbittorrent.entrypoints=web"
+      - "traefik.http.routers.qbittorrent.entrypoints=web,websecure"
+      - "traefik.http.routers.qbittorrent.tls=true"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
     networks:
       - traefik-net
@@ -121,7 +122,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.qbittorrent.rule=Host(`torrent.home`)"
-      - "traefik.http.routers.qbittorrent.entrypoints=web"
+      - "traefik.http.routers.qbittorrent.entrypoints=web,websecure"
+      - "traefik.http.routers.qbittorrent.tls=true"
       - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
     networks:
       - traefik-net

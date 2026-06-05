@@ -28,7 +28,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.beszel.rule=Host(\`monitoring.home\`)"
-      - "traefik.http.routers.beszel.entrypoints=web"
+      - "traefik.http.routers.beszel.entrypoints=web,websecure"
+      - "traefik.http.routers.beszel.tls=true"
       - "traefik.http.services.beszel.loadbalancer.server.port=8090"
     networks:
       - traefik-net

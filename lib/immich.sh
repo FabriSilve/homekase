@@ -44,7 +44,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.immich.rule=Host(`photos.home`)"
-      - "traefik.http.routers.immich.entrypoints=web"
+      - "traefik.http.routers.immich.entrypoints=web,websecure"
+      - "traefik.http.routers.immich.tls=true"
       - "traefik.http.services.immich.loadbalancer.server.port=3001"
     depends_on:
       - immich-db

@@ -27,7 +27,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.syncthing.rule=Host(\`sync.home\`)"
-      - "traefik.http.routers.syncthing.entrypoints=web"
+      - "traefik.http.routers.syncthing.entrypoints=web,websecure"
+      - "traefik.http.routers.syncthing.tls=true"
       - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
     networks:
       - traefik-net
