@@ -113,21 +113,7 @@ deploy_assistant() {
     return
   fi
 
-  echo ""
-  case "$quality" in
-    excellent)
-      ok "Recommended: $model_name (~$((model_ram / 1024))GB) — excellent quality"
-      info "Best model for your hardware. Reliable tool calling, good summarization."
-      ;;
-    good)
-      ok "Recommended: $model_name (~$((model_ram / 1024))GB) — good quality"
-      info "Solid model. Good tool calling, decent summarization."
-      ;;
-    basic)
-      warn "Recommended: $model_name (~$((model_ram / 1024))GB) — basic quality"
-      info "Smaller model due to RAM constraints. Simple tasks OK, complex tasks may struggle."
-      ;;
-  esac
+  ok "Selected: $model_name"
   echo ""
 
   if ! prompt_yes_no "Deploy AI Assistant with $model_name?"; then
@@ -169,6 +155,6 @@ ENV
   append_url "Assistant     → http://assistant.home"
 
   ok "AI Assistant deployed at http://assistant.home"
-  info "Model: $model_name ($quality quality)"
+  info "Model: $model_name"
   info "Config: /data/config/assistant/.env"
 }
