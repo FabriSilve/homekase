@@ -358,7 +358,9 @@ setup_lvm_volume_and_mount() {
     warn "LV $lv_name already exists — reusing it"
     if prompt_yes_no "Reformat (wipe) existing LV $lv_name?" "n"; then
       info "Reformatting ${vg_name}/${lv_name}..."
+      lvchange -an "${vg_name}/${lv_name}" 2>/dev/null || true
       mkfs.ext4 -q "/dev/${vg_name}/${lv_name}"
+      lvchange -ay "${vg_name}/${lv_name}" 2>/dev/null || true
     fi
   else
     if [[ "$lv_size" == *%* ]]; then
