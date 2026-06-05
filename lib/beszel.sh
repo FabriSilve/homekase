@@ -12,6 +12,9 @@ deploy_beszel() {
 
   mkdir -p "$HOMELAB_DIR/monitoring"
 
+  local hostname
+  hostname=$(hostname -s)
+
   cat > "$HOMELAB_DIR/monitoring/docker-compose.yml" << BESZEL
 services:
   beszel-hub:
@@ -30,6 +33,18 @@ services:
     networks:
       - traefik-net
 
+  beszel-agent:
+    image: henrygd/beszel-agent:0.7
+    container_name: beszel-agent
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      PORT: 45876
+      BESZEL_SERVER: "http://localhost:8090"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+
 networks:
   traefik-net:
     external: true
@@ -40,4 +55,9 @@ BESZEL
   append_url "Monitoring    → http://monitoring.home"
 
   ok "Beszel deployed at http://monitoring.home"
+  echo ""
+  echo -e "  ${YELLOW}Next step:${NC} Open http://monitoring.home, create your admin account,"
+  echo -e "  then ${BOLD}approve the pending system${NC} (\`${hostname}\`) in the dashboard."
+  echo -e "  Metrics will start flowing immediately after approval."
+  echo ""
 }

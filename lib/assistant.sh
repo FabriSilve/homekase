@@ -127,8 +127,11 @@ deploy_assistant() {
     git -C "$ASSISTANT_DIR" pull --quiet
   else
     info "Cloning assistant..."
-    if is_installed gh && gh auth status 2>/dev/null; then
-      gh repo clone FabriSilve/server-assistant "$ASSISTANT_DIR"
+    local gh_user
+    gh_user=$(get_user)
+    if is_installed gh && sudo -u "$gh_user" gh auth status 2>/dev/null; then
+      sudo -u "$gh_user" gh repo clone FabriSilve/server-assistant "$ASSISTANT_DIR"
+      chown -R "$gh_user:$gh_user" "$ASSISTANT_DIR" 2>/dev/null || true
     else
       local gh_token
       gh_token=$(prompt_secret "GitHub personal access token (classic, with repo scope)")

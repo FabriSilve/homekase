@@ -23,6 +23,9 @@ deploy_adguard() {
   local adguard_hash
   adguard_hash=$(openssl passwd -6 "$adguard_password")
 
+  local server_ip
+  server_ip=$(hostname -I | awk '{print $1}')
+
   if [ ! -f "$DATA_DIR/config/adguard/conf/AdGuardHome.yaml" ]; then
     cat > "$DATA_DIR/config/adguard/conf/AdGuardHome.yaml" << ADGUARD_CONFIG
 http:
@@ -40,8 +43,14 @@ dns:
   bootstrap_dns:
     - 1.1.1.1
     - 8.8.8.8
+  filtering:
+    safe_search: false
+  dns_rewrites:
+    - domain: "*.home"
+      answer: "${server_ip}"
 ADGUARD_CONFIG
     info "AdGuard admin credentials pre-configured"
+    info "DNS rewrites for *.home → ${server_ip} configured"
   fi
 
   cat > "$HOMELAB_DIR/traefik/.adguard.env" << ENV
@@ -99,9 +108,6 @@ RESOLV
   fi
 
   docker compose -f "$HOMELAB_DIR/traefik/adguard.yml" up -d
-
-  local server_ip
-  server_ip=$(hostname -I | awk '{print $1}')
 
   # Point host DNS to AdGuard now that it's running
   cat > /etc/resolv.conf << RESOLV
