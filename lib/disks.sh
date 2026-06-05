@@ -263,22 +263,15 @@ setup_disk_and_mount() {
       ok "$mount_point already mounted on $device, skipping"
       return
     fi
-    local is_empty
-    is_empty=$(ls -A "$mount_point" 2>/dev/null | wc -l)
-    if [ "${is_empty:-0}" -eq 0 ]; then
-      warn "$mount_point is currently mounted on $current_dev (different from $device)"
-      warn "The directory is empty — no data to lose."
-      if prompt_yes_no "Unmount from $current_dev and set up $mount_point on $device instead?"; then
-        old_device="$current_dev"
-        umount "$mount_point"
-        sed -i "\|$mount_point|d" /etc/fstab 2>/dev/null || true
-        ok "Unmounted $mount_point from $current_dev"
-      else
-        ok "Keeping $mount_point on $current_dev"
-        return
-      fi
+    local data_size
+    data_size=$(du -sh "$mount_point" 2>/dev/null | awk '{print $1}')
+    warn "$mount_point is currently mounted on $current_dev (different from $device)"
+    if prompt_yes_no "Data detected (${data_size:-unknown}) — unmount and relocate to $device? Data will remain on old device, just unmounted." "n"; then
+      old_device="$current_dev"
+      umount "$mount_point"
+      sed -i "\|$mount_point|d" /etc/fstab 2>/dev/null || true
+      ok "Unmounted $mount_point from $current_dev"
     else
-      warn "$mount_point is mounted on $current_dev and contains data — cannot relocate automatically"
       ok "Keeping $mount_point on $current_dev"
       return
     fi
@@ -310,13 +303,16 @@ setup_disk_and_mount() {
 
   if [ -n "$old_device" ] && [ -b "$old_device" ]; then
     echo ""
-    warn "Old device $old_device is no longer in use for $mount_point"
-    if prompt_yes_no "Wipe $old_device to reclaim the space?" "n"; then
+    local wipe_choice
+    wipe_choice=$(prompt_choose "What to do with the old device $old_device?" \
+      "keep — Keep unmounted (data preserved)" \
+      "wipe — Wipe filesystem to reclaim space")
+    if [[ "$wipe_choice" == wipe* ]]; then
       info "Wiping $old_device..."
       wipefs -a "$old_device" 2>/dev/null || dd if=/dev/zero of="$old_device" bs=1M count=10 2>/dev/null || true
       ok "$old_device wiped and available for reuse"
     else
-      info "Keeping $old_device as-is"
+      ok "Keeping $old_device unmounted — data remains intact"
     fi
   fi
 }
