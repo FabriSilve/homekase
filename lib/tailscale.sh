@@ -29,23 +29,57 @@ can all communicate securely over the internet as if they were on the same LAN."
   echo -e "  ${BOLD}Open the following URL in your browser (phone or laptop):${NC}"
   echo ""
 
-  # Run tailscale up; it prints the auth URL and waits for authentication
   tailscale up --accept-dns=false --accept-routes=false
 
   echo ""
 
   local ts_ip
   ts_ip=$(tailscale ip -4 2>/dev/null || true)
-  if [ -n "$ts_ip" ]; then
-    ok "Tailscale connected! Your server's Tailscale IP: ${BOLD}$ts_ip${NC}"
-    echo ""
-    echo -e "  ${CYAN}Install Tailscale on your phone/laptop, then access:${NC}"
-    echo -e "  http://${ts_ip}:8090   — Beszel monitoring"
-    echo -e "  http://${ts_ip}        — Traefik / other services on port 80"
-    echo ""
-    echo -e "  ${YELLOW}Tip:${NC} Enable MagicDNS in the Tailscale admin console"
-    echo -e "  to use hostnames instead of IPs (e.g. http://server:8090)."
-  else
+  if [ -z "$ts_ip" ]; then
     warn "Tailscale installed but not connected — run 'sudo tailscale up' manually"
+    return
   fi
+
+  ok "Tailscale connected! Your server's Tailscale IP: ${BOLD}$ts_ip${NC}"
+  echo ""
+
+  if prompt_yes_no "Can you configure custom DNS on your router?" "n"; then
+    router_dns_config "$ts_ip"
+  else
+    tailscale_dns_config "$ts_ip"
+  fi
+}
+
+router_dns_config() {
+  local ts_ip="$1"
+  echo -e "  ${BOLD}LAN access (all devices):${NC}"
+  echo -e "  Configure your router's DHCP to announce the server's"
+  echo -e "  LAN IP as DNS. Then all devices resolve ${CYAN}.home${NC} URLs."
+  echo ""
+  echo -e "  ${BOLD}Remote access (Tailscale):${NC}"
+  echo -e "  http://${ts_ip}:8090   — Beszel monitoring"
+  echo ""
+}
+
+tailscale_dns_config() {
+  local ts_ip="$1"
+  warn "Your router does not support custom DNS — using Tailscale DNS routes instead."
+  echo ""
+  echo -e "  ${BOLD}Step 1: Configure Tailscale DNS routes${NC}"
+  echo -e "  Go to:  ${CYAN}https://login.tailscale.com/admin/dns${NC}"
+  echo -e "  Under ${BOLD}Nameservers${NC}, add: ${ts_ip}"
+  echo -e "  Restrict to domain: ${BOLD}home${NC}"
+  echo ""
+  echo -e "  ${BOLD}Step 2: Connect your devices${NC}"
+  echo -e "  Install Tailscale on your phone and laptop."
+  echo -e "  Enable ${BOLD}Use Tailscale DNS${NC} in the client settings."
+  echo -e "  Then ${CYAN}.home${NC} URLs will work through Tailscale."
+  echo ""
+  echo -e "  ${BOLD}LAN devices without Tailscale${NC}"
+  echo -e "  Edit ${BOLD}/etc/hosts${NC} on your laptop:"
+  echo -e "  ${ts_ip}  monitoring.home dns.home jellyfin.home photos.home"
+  echo ""
+  echo -e "  ${BOLD}Remote access (Tailscale):${NC}"
+  echo -e "  http://${ts_ip}:8090   — Beszel monitoring"
+  echo ""
 }
