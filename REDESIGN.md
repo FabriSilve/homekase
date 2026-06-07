@@ -73,6 +73,37 @@ homekase app deploy <name>        # Build + push + deploy
   - `tailscale serve --https=443 8096` → `http://jellyfin.tailXXXXX.ts.net`
   - Or use Tailscale Funnel for public internet access
 
+## Service Architecture Decisions
+
+### Nextcloud Replaced by Specialized Tools
+
+Nextcloud tried to do everything (files, photos, calendar, contacts) but does none as well as the dedicated alternatives. The split:
+
+| Need | Tool | Why |
+|------|------|-----|
+| **Photos/videos** | Immich | Best-in-class mobile auto-backup, AI tagging, shared albums |
+| **Documents/scans** | Paperless-ngx | OCR, auto-categorization, full-text search for invoices/receipts |
+| **Calendar + Contacts** | Nextcloud (or Baikal) | CalDAV/CardDAV sync with phone/laptop — the one thing Nextcloud does well that has no single replacement |
+| **File sync** | Syncthing | Decentralized peer-to-peer folder sync (no central server); covers the Dropbox use case |
+| **Web file uploads** | Filebrowser | Lightweight web UI for uploading/downloading files from any device without an app |
+
+**Result**: Immich + Paperless + Syncthing + Filebrowser covers everything Nextcloud does, better. Optionally add Nextcloud just for calendar/contacts if needed — it coexists fine on separate ports with no storage overlap.
+
+### What Not to Run
+
+| App | Verdict |
+|-----|---------|
+| **MicroK8s** | Overkill for homelab — adds etcd, CNI, control plane complexity. Stick with Docker Compose. |
+| **AdGuard Home** | Removed — Tailscale MagicDNS + `/etc/hosts` replaces it |
+| **Traefik** | Removed — Tailscale Serve routes per-service ports |
+| **RocketChat** | Heavy (MongoDB). Skip unless you specifically need self-hosted team chat. |
+| **Keepalived** | Useless on a single server (multi-server HA only). |
+| **Canonical Livepatch** | Requires Ubuntu Pro token. Skip if no subscription. |
+
+### Wekan
+
+Lightweight Kanban board (Docker Compose + MongoDB). Include as optional service.
+
 ## Directory Layout
 
 ```
