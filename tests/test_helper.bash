@@ -1,9 +1,6 @@
-# test_helper.bash — minimal bats assertion helpers
-# Provides assert_success, assert_failure, assert_output, etc.
+# Minimal bats helpers — assert_success, assert_failure, assert_output, assert_equal
 
-# Source config before any lib (provides HOMELAB_DIR, etc.)
-# shellcheck disable=SC1091
-source "${BATS_TEST_DIRNAME}/../lib/config.sh"
+PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 
 assert_success() {
   if [ "$status" -ne 0 ]; then
@@ -22,8 +19,7 @@ assert_failure() {
 }
 
 assert_equal() {
-  local expected="$1"
-  local actual="$2"
+  local expected="$1" actual="$2"
   if [[ "$expected" != "$actual" ]]; then
     echo "expected: $expected"
     echo "got:      $actual"
@@ -36,21 +32,19 @@ assert_output() {
     local expected="$2"
     if [[ "$output" != *"$expected"* ]]; then
       echo "expected to contain: $expected"
-      echo "got:                $output"
+      echo "got: $output"
       return 1
     fi
   elif [[ "$1" == "--regexp" ]]; then
-    local expected="$2"
-    if [[ ! "$output" =~ $expected ]]; then
-      echo "expected to match: $expected"
-      echo "got:              $output"
+    if [[ ! "$output" =~ $2 ]]; then
+      echo "expected to match: $2"
+      echo "got: $output"
       return 1
     fi
   else
-    local expected="$1"
-    if [[ "$output" != "$expected" ]]; then
-      echo "expected: $expected"
-      echo "got:      $output"
+    if [[ "$output" != "$1" ]]; then
+      echo "expected: $1"
+      echo "got: $output"
       return 1
     fi
   fi
