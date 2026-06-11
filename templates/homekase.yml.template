@@ -1,0 +1,13 @@
+version: "1"
+paths:
+  data: /data
+  storage: /storage
+  backup: /backup
+  homelab: /opt/homelab
+  config: /etc/homekase
+ssh_key: /etc/homekase/.ssh/id_ed25519
+tailscale:
+  installed: "false"
+ufw:
+  enabled: "false"
+apps: {}
