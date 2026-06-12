@@ -15,33 +15,25 @@ Inspired by [Omakub](https://github.com/basecamp/omakub).
 
 ## Hardware requirements
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| CPU | 2 cores | 4+ cores |
-| RAM | 8 GB | 16-32 GB |
-| OS drive | 120 GB SSD | 250 GB SSD |
-| Data drive | — | 500 GB SSD |
-| Storage drive | — | 1 TB+ HDD |
+| Component     | Minimum    | Recommended |
+| ------------- | ---------- | ----------- |
+| CPU           | 2 cores    | 4+ cores    |
+| RAM           | 8 GB       | 16-32 GB    |
+| OS drive      | 120 GB SSD | 250 GB SSD  |
+| Data drive    | —          | 500 GB SSD  |
+| Storage drive | —          | 1 TB+ HDD   |
 
 ## Installation
 
 SSH into your server, then:
 
 ```bash
-# Install prerequisites (git, yq, gum)
-sudo apt-get install -y git
-sudo snap install yq
-curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
-echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
-sudo apt update && sudo apt install -y gum
-
-# Clone and install
-git clone https://github.com/FabriSilve/homekase.git ~/homekase
-cd ~/homekase
-sudo bash install.sh
+curl -fsSL https://raw.githubusercontent.com/FabriSilve/homekase/master/install.sh | sudo bash
 ```
 
-`install.sh` sets up an SSH key for GitHub, clones the repo to `/opt/homekase-cli`, symlinks `homekase` to `/usr/local/bin`, and initialises the config at `/etc/homekase/homekase.yml`.
+`install.sh` installs prerequisites (git, yq, gum), generates an SSH key, clones the repo to `/opt/homekase`, symlinks `homekase` to `/usr/local/bin`, and initialises the config at `/etc/homekase/homekase.yml`.
+
+You will be prompted to add the generated SSH public key to your GitHub account before the clone happens.
 
 ## First-time setup
 
@@ -100,11 +92,11 @@ homekase server docker         # install Docker engine and create homekase-net
 
 Each service runs on a port you choose during `homekase add`. No shared reverse proxy.
 
-| Context | URL |
-|---------|-----|
-| Local network | `http://<server-ip>:<port>` |
-| LAN by name (after `homekase open`) | `http://<server-ip>:<port>` |
-| Remote (Tailscale) | `https://<hostname>.<tailnet>.ts.net:<port>` |
+| Context                             | URL                                          |
+| ----------------------------------- | -------------------------------------------- |
+| Local network                       | `http://<server-ip>:<port>`                  |
+| LAN by name (after `homekase open`) | `http://<server-ip>:<port>`                  |
+| Remote (Tailscale)                  | `https://<hostname>.<tailnet>.ts.net:<port>` |
 
 Run `homekase status` to list all running services with their URLs.
 
