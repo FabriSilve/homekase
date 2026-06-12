@@ -13,18 +13,18 @@ _config_require_yq() {
 
 config_get() {
   _config_require_yq
-  yq ".$1" "$HOMEKASE_CONFIG" 2>/dev/null
+  yq ".$1" "${HOMEKASE_CONFIG}" 2>/dev/null
 }
 
 config_set() {
   _config_require_yq
-  yq -i ".$1 = \"$2\"" "$HOMEKASE_CONFIG"
+  yq -i ".$1 = \"$2\"" "${HOMEKASE_CONFIG}"
 }
 
 config_app_installed() {
   local val
   val="$(config_get "apps.$1.installed" 2>/dev/null)"
-  [[ "$val" == "true" ]]
+  [[ "${val}" == "true" ]]
 }
 
 config_app_get() {
@@ -33,17 +33,17 @@ config_app_get() {
 
 config_app_set() {
   _config_require_yq
-  yq -i ".apps.$1.$2 = \"$3\"" "$HOMEKASE_CONFIG"
+  yq -i ".apps.$1.$2 = \"$3\"" "${HOMEKASE_CONFIG}"
 }
 
 config_init() {
-  [[ -f "$HOMEKASE_CONFIG" ]] && return 0
-  local template="$HOMEKASE_REPO_DIR/templates/homekase.yml.template"
-  if [[ ! -f "$template" ]]; then
-    echo "✗  Config template not found: $template" >&2
+  [[ -f "${HOMEKASE_CONFIG}" ]] && return 0
+  local template="${HOMEKASE_REPO_DIR}/templates/homekase.yml.template"
+  if [[ ! -f "${template}" ]]; then
+    echo "✗  Config template not found: ${template}" >&2
     exit 1
   fi
-  mkdir -p "$(dirname "$HOMEKASE_CONFIG")"
-  cp "$template" "$HOMEKASE_CONFIG"
-  chmod 644 "$HOMEKASE_CONFIG"
+  mkdir -p "$(dirname "${HOMEKASE_CONFIG}")"
+  cp "${template}" "${HOMEKASE_CONFIG}"
+  chmod 644 "${HOMEKASE_CONFIG}"
 }

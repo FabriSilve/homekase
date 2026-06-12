@@ -2,7 +2,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-PROJECT="$(dirname "$HERE")"
+PROJECT="$(dirname "${HERE}")"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -40,21 +40,21 @@ fi
 
 # ---- Static analysis ----
 echo -e "\n${BOLD}━━━ ShellCheck ━━━${NC}"
-find "$PROJECT" -name '*.sh' -not -path '*/node_modules/*' | sort | while read -r f; do
-  if shellcheck -x "$f" 2>/dev/null; then
-    echo -e "  ${GREEN}✓${NC} ${f#"$PROJECT/"}"
+find "${PROJECT}" -name '*.sh' -not -path '*/node_modules/*' | sort | while read -r f; do
+  if shellcheck -x "${f}" 2>/dev/null; then
+    echo -e "  ${GREEN}✓${NC} ${f#"${PROJECT}/"}"
   else
     FAILED=1
-    echo -e "  ${RED}✗${NC} ${f#"$PROJECT/"}"
+    echo -e "  ${RED}✗${NC} ${f#"${PROJECT}/"}"
   fi
 done 2>&1 || true
 
-find "$PROJECT" -name '*.fish' -not -path '*/node_modules/*' | sort | while read -r f; do
-  if fish -n "$f" 2>/dev/null; then
-    echo -e "  ${GREEN}✓${NC} ${f#"$PROJECT/"}"
+find "${PROJECT}" -name '*.fish' -not -path '*/node_modules/*' | sort | while read -r f; do
+  if fish -n "${f}" 2>/dev/null; then
+    echo -e "  ${GREEN}✓${NC} ${f#"${PROJECT}/"}"
   else
     FAILED=1
-    echo -e "  ${RED}✗${NC} ${f#"$PROJECT/"} (syntax error)"
+    echo -e "  ${RED}✗${NC} ${f#"${PROJECT}/"} (syntax error)"
   fi
 done 2>&1 || true
 
@@ -65,24 +65,24 @@ TEST_COUNT=0
 TEST_PASSED=0
 TEST_FAILED=0
 
-for test_file in "$HERE"/test_*.bats; do
-  [ -f "$test_file" ] || continue
-  NAME="$(basename "$test_file" .bats)"
-  echo -e "\n${CYAN}::${NC} $NAME"
+for test_file in "${HERE}"/test_*.bats; do
+  [[ -f "${test_file}" ]] || continue
+  NAME="$(basename "${test_file}" .bats)"
+  echo -e "\n${CYAN}::${NC} ${NAME}"
 
-  bats --timing "$test_file" 2>&1 && {
+  if bats --timing "${test_file}" 2>&1; then
     ((TEST_PASSED++))
-  } || {
+  else
     ((TEST_FAILED++))
     FAILED=1
-  }
+  fi
   ((TEST_COUNT++))
 done
 
 # ---- Summary ----
 echo ""
 echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-if [ -n "${FAILED:-}" ]; then
+if [[ -n "${FAILED:-}" ]]; then
   echo -e "${RED}✗ Some tests failed${NC}"
   exit 1
 else

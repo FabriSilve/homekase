@@ -9,26 +9,26 @@ if ! command -v shellcheck &>/dev/null; then
 fi
 
 echo ":: Running ShellCheck..."
-find "$HERE" -name '*.sh' -not -path '*/node_modules/*' | sort | while read -r f; do
-  if shellcheck -x "$f"; then
-    echo "  ✓ ${f#"$HERE/"}"
+find "${HERE}" -name '*.sh' -not -path '*/node_modules/*' | sort | while read -r f; do
+  if shellcheck -x "${f}"; then
+    echo "  ✓ ${f#"${HERE}/"}"
   else
     FAILED=1
   fi
 done
 
-find "$HERE" -name '*.fish' -not -path '*/node_modules/*' | sort | while read -r f; do
+find "${HERE}" -name '*.fish' -not -path '*/node_modules/*' | sort | while read -r f; do
   # fish has no official shellcheck, but we check the file is readable
-  if fish -n "$f" 2>/dev/null; then
-    echo "  ✓ ${f#"$HERE/"}"
+  if fish -n "${f}" 2>/dev/null; then
+    echo "  ✓ ${f#"${HERE}/"}"
   else
-    echo "  ✗ ${f#"$HERE/"} (syntax error)"
+    echo "  ✗ ${f#"${HERE}/"} (syntax error)"
     FAILED=1
   fi
 done
 
 echo ""
-if [ -n "${FAILED:-}" ]; then
+if [[ -n "${FAILED:-}" ]]; then
   echo "✗ Some checks failed"
   exit 1
 else

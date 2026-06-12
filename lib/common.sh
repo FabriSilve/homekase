@@ -13,7 +13,9 @@ is_installed() { command -v "$1" &>/dev/null; }
 gum_available() { is_installed gum; }
 
 require_root() {
-  if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+  local uid
+  uid="$(id -u)"
+  if [[ "${EUID:-${uid}}" -ne 0 ]]; then
     error "This command requires root. Run with sudo."
     exit 1
   fi
@@ -22,9 +24,9 @@ require_root() {
 ask_confirm() {
   local question="${1:-Are you sure?}"
   if gum_available; then
-    gum confirm "$question"
+    gum confirm "${question}"
   else
-    read -r -p "$question [y/N] " reply
+    read -r -p "${question} [y/N] " reply
     [[ "${reply,,}" == "y" ]]
   fi
 }
@@ -32,24 +34,24 @@ ask_confirm() {
 ask_input() {
   local prompt="$1" default="${2:-}"
   if gum_available; then
-    gum input --placeholder "$prompt" --value "$default"
+    gum input --placeholder "${prompt}" --value "${default}"
   else
-    read -r -p "$prompt [$default]: " reply
-    echo "${reply:-$default}"
+    read -r -p "${prompt} [${default}]: " reply
+    echo "${reply:-${default}}"
   fi
 }
 
 ask_choose() {
   local prompt="$1"; shift
   if gum_available; then
-    printf '%s\n' "$@" | gum choose --header "$prompt"
+    printf '%s\n' "$@" | gum choose --header "${prompt}"
   else
-    echo "$prompt"
+    echo "${prompt}"
     local i=1
-    for opt in "$@"; do echo "  $i) $opt"; ((i++)); done
+    for opt in "$@"; do echo "  ${i}) ${opt}"; ((i++)); done
     read -r -p "Choice [1]: " reply
     local idx=$(( ${reply:-1} - 1 ))
     local opts=("$@")
-    echo "${opts[$idx]}"
+    echo "${opts[${idx}]}"
   fi
 }
