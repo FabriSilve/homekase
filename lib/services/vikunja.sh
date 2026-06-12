@@ -47,6 +47,7 @@ DATA_PATH=${DATA_PATH}
 TS=${TS}"
 
   mkdir -p "${DATA_PATH}"
+  chown -R 1000:0 "${DATA_PATH}"
 
   start_service "vikunja"
 
