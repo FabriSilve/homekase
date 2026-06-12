@@ -60,6 +60,7 @@ cmd_open() {
     return 0
   fi
 
+  require_root
   info "Opening port ${port}/tcp for ${svc}..."
   ufw allow "${port}/tcp"
   ok "Port ${port}/tcp open — ${svc} accessible on LAN."
@@ -79,6 +80,7 @@ cmd_close() {
     return 0
   fi
 
+  require_root
   info "Closing port ${port}/tcp for ${svc}..."
   ufw delete allow "${port}/tcp" 2>/dev/null || true
   ok "Port ${port}/tcp closed — ${svc} no longer accessible on LAN."

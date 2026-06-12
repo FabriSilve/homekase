@@ -197,6 +197,7 @@ _backup_one_app() {
 }
 
 cmd_backup() {
+  require_root
   local app_arg=""
   local incremental=false
   local arg

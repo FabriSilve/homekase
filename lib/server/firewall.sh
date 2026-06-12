@@ -65,6 +65,7 @@ cmd_server_firewall() {
       ok "Port ${port}/tcp closed."
       ;;
     status)
+      require_root
       ufw status verbose
       ;;
     *)
