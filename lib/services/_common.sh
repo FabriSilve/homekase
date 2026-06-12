@@ -53,7 +53,7 @@ tailscale_serve_setup() {
     return 0
   fi
   if ask_confirm "Expose port ${port} via Tailscale Serve (HTTPS)?"; then
-    tailscale serve --bg --set-path "${port}" http://localhost:"${port}" \
+    tailscale serve --bg --set-path "${port}" http://localhost:"${port}" >&2 \
       || warn "tailscale serve failed — check tailscale status"
     echo "true"
   else
