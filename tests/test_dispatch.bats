@@ -58,3 +58,28 @@ HOMEKASE="$PROJECT_ROOT/homekase"
   run bash "$HOMEKASE" __invalid_cmd_xyz__
   [[ "$output" == *"Unknown command"* ]]
 }
+
+@test "homekase server with no args exits 0" {
+  run bash "$HOMEKASE" server
+  [ "$status" -eq 0 ]
+}
+
+@test "homekase server --help shows ssh" {
+  run bash "$HOMEKASE" server --help
+  [[ "$output" == *"ssh"* ]]
+}
+
+@test "homekase server --help shows firewall" {
+  run bash "$HOMEKASE" server --help
+  [[ "$output" == *"firewall"* ]]
+}
+
+@test "homekase server --help shows docker" {
+  run bash "$HOMEKASE" server --help
+  [[ "$output" == *"docker"* ]]
+}
+
+@test "homekase server unknown subcommand exits 1" {
+  run bash "$HOMEKASE" server __bad_subcmd__
+  [ "$status" -eq 1 ]
+}
