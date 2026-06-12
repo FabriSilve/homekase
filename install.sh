@@ -3,8 +3,8 @@ set -euo pipefail
 
 INSTALL_DIR="/opt/homekase"
 CONFIG_DIR="/etc/homekase"
-SSH_DIR="$CONFIG_DIR/.ssh"
-SSH_KEY="$SSH_DIR/id_ed25519"
+SSH_DIR="${CONFIG_DIR}/.ssh"
+SSH_KEY="${SSH_DIR}/id_ed25519"
 REPO_SSH="git@github.com:FabriSilve/homekase.git"
 BIN_LINK="/usr/local/bin/homekase"
 YQ_VERSION="v4.44.1"
@@ -14,11 +14,12 @@ _info()  { echo -e "${BLUE}ℹ${RESET}  $*"; }
 _ok()    { echo -e "${GREEN}✓${RESET}  $*"; }
 _error() { echo -e "${RED}✗${RESET}  $*" >&2; exit 1; }
 
-[[ "${EUID:-$(id -u)}" -eq 0 ]] || _error "Run as root: sudo bash install.sh"
+uid="$(id -u)"
+[[ "${EUID:-${uid}}" -eq 0 ]] || _error "Run as root: sudo bash install.sh"
 
 # Already installed?
-if [[ -d "$INSTALL_DIR" && -x "$BIN_LINK" ]]; then
-  _info "homekase already installed at $INSTALL_DIR"
+if [[ -d "${INSTALL_DIR}" && -x "${BIN_LINK}" ]]; then
+  _info "homekase already installed at ${INSTALL_DIR}"
   _info "Run 'homekase update' to pull the latest version."
   exit 0
 fi
@@ -32,7 +33,7 @@ _ok "git ready"
 
 # Prerequisites: yq
 if ! command -v yq &>/dev/null; then
-  _info "Installing yq $YQ_VERSION..."
+  _info "Installing yq ${YQ_VERSION}..."
   YQ_ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
   wget -qO /usr/local/bin/yq \
     "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${YQ_ARCH}"
@@ -40,14 +41,27 @@ if ! command -v yq &>/dev/null; then
 fi
 _ok "yq ready"
 
+# Prerequisites: gum
+if ! command -v gum &>/dev/null; then
+  _info "Installing gum..."
+  mkdir -p /etc/apt/keyrings
+  # shellcheck disable=SC2312
+  curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
+    > /etc/apt/sources.list.d/charm.list
+  apt-get update -qq && apt-get install -y -qq gum
+fi
+_ok "gum ready"
+
 # SSH key for GitHub
 _info "Setting up SSH key for GitHub access..."
-mkdir -p "$SSH_DIR"
-chmod 700 "$SSH_DIR"
+mkdir -p "${SSH_DIR}"
+chmod 700 "${SSH_DIR}"
 
-if [[ ! -f "$SSH_KEY" ]]; then
-  ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "homekase@$(hostname)" -q
-  chmod 600 "$SSH_KEY"
+if [[ ! -f "${SSH_KEY}" ]]; then
+  host="$(hostname)"
+  ssh-keygen -t ed25519 -f "${SSH_KEY}" -N "" -C "homekase@${host}" -q
+  chmod 600 "${SSH_KEY}"
   chmod 644 "${SSH_KEY}.pub"
   _ok "SSH key generated"
 else
@@ -64,23 +78,23 @@ read -r -p "Press Enter once the key is added to GitHub... "
 
 # Clone repository
 _info "Cloning homekase..."
-export GIT_SSH_COMMAND="ssh -i $SSH_KEY -o StrictHostKeyChecking=accept-new"
-git clone "$REPO_SSH" "$INSTALL_DIR"
+export GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o StrictHostKeyChecking=accept-new"
+git clone "${REPO_SSH}" "${INSTALL_DIR}"
 
 # Symlink
-chmod +x "$INSTALL_DIR/homekase"
-ln -sf "$INSTALL_DIR/homekase" "$BIN_LINK"
-_ok "homekase linked to $BIN_LINK"
+chmod +x "${INSTALL_DIR}/homekase"
+ln -sf "${INSTALL_DIR}/homekase" "${BIN_LINK}"
+_ok "homekase linked to ${BIN_LINK}"
 
 # Initialize config
-if [[ ! -f "$CONFIG_DIR/homekase.yml" ]]; then
-  mkdir -p "$CONFIG_DIR"
-  cp "$INSTALL_DIR/templates/homekase.yml.template" "$CONFIG_DIR/homekase.yml"
-  chmod 644 "$CONFIG_DIR/homekase.yml"
-  chown root:root "$CONFIG_DIR/homekase.yml"
+if [[ ! -f "${CONFIG_DIR}/homekase.yml" ]]; then
+  mkdir -p "${CONFIG_DIR}"
+  cp "${INSTALL_DIR}/templates/homekase.yml.template" "${CONFIG_DIR}/homekase.yml"
+  chmod 644 "${CONFIG_DIR}/homekase.yml"
+  chown root:root "${CONFIG_DIR}/homekase.yml"
 fi
-yq -i ".ssh_key = \"$SSH_KEY\"" "$CONFIG_DIR/homekase.yml"
-_ok "Config at $CONFIG_DIR/homekase.yml"
+yq -i ".ssh_key = \"${SSH_KEY}\"" "${CONFIG_DIR}/homekase.yml"
+_ok "Config at ${CONFIG_DIR}/homekase.yml"
 
 echo
 _ok "homekase installed!"
