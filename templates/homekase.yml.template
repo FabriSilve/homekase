@@ -3,11 +3,13 @@ paths:
   data: /data
   storage: /storage
   backup: /backup
-  homelab: /opt/homelab
+  homekase: /opt/homekase
   config: /etc/homekase
 ssh_key: /etc/homekase/.ssh/id_ed25519
 tailscale:
   installed: "false"
+  hostname: ""
+  domain: ""
 ufw:
   enabled: "false"
 apps: {}

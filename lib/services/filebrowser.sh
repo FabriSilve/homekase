@@ -24,7 +24,7 @@ deploy_filebrowser() {
       - \"\${PORT}:80\"
     volumes:
       - \${STORAGE_PATH}:/srv
-      - /opt/homelab/filebrowser/filebrowser.db:/database.db
+      - ${HOMELAB_DIR}/filebrowser/filebrowser.db:/database.db
     environment:
       FB_PASSWORD: \${ADMIN_PASSWORD}
     command: --database /database.db --root /srv --port 80 --address 0.0.0.0
@@ -35,7 +35,7 @@ deploy_filebrowser() {
       com.homekase.port: \"\${PORT}\"
       com.homekase.tailscale: \"\${TS}\"
       com.homekase.backup.type: snapshot
-      com.homekase.backup.data: /opt/homelab/filebrowser/filebrowser.db
+      com.homekase.backup.data: ${HOMELAB_DIR}/filebrowser/filebrowser.db
       com.homekase.backup.db-type: sqlite
 
 networks:

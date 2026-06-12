@@ -3,7 +3,7 @@
 # Shared helpers for all service installers.
 # Sourced by lib/services/service.sh after common.sh and config.sh are loaded.
 
-HOMELAB_DIR="${HOMELAB_DIR:-/opt/homelab}"
+HOMELAB_DIR="${HOMELAB_DIR:-/opt/homekase}"
 DEFAULT_FIRST_PORT=4000
 PORT_STEP=10
 
@@ -61,20 +61,20 @@ tailscale_serve_setup() {
   fi
 }
 
-# Creates /opt/homelab/<name>/ directory.
+# Creates /opt/homekase/<name>/ directory.
 write_service_dir() {
   local name="$1"
   mkdir -p "${HOMELAB_DIR}/${name}"
 }
 
-# Writes /opt/homelab/<name>/.env from the given content string.
+# Writes /opt/homekase/<name>/.env from the given content string.
 write_env_file() {
   local name="$1"
   local content="$2"
   printf '%s\n' "${content}" > "${HOMELAB_DIR}/${name}/.env"
 }
 
-# Writes /opt/homelab/<name>/docker-compose.yml from the given content string.
+# Writes /opt/homekase/<name>/docker-compose.yml from the given content string.
 write_compose_file() {
   local name="$1"
   local content="$2"

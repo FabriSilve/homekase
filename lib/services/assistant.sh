@@ -27,7 +27,7 @@ deploy_assistant() {
 
   local ssh_key
   ssh_key="$(config_get 'ssh_key' 2>/dev/null || echo '/etc/homekase/.ssh/id_ed25519')"
-  local REPO_DIR="/opt/homelab/assistant"
+  local REPO_DIR="${HOMELAB_DIR}/assistant"
 
   if [[ -d "${REPO_DIR}/.git" ]]; then
     info "Updating server-assistant repo..."

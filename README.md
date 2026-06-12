@@ -1,23 +1,19 @@
-# 🏠 homekase
+# homekase
 
-Homelab setup for Ubuntu Server 24.04 LTS. Opinionated, automated, idempotent.
+Opinionated homelab CLI for Ubuntu Server 24.04 LTS. Modular, idempotent, no curl-pipe-bash.
 
 Inspired by [Omakub](https://github.com/basecamp/omakub).
 
 ## What you get
 
-- **Shell**: fish, starship, zellij, lazygit, fzf, yazi
-- **Editor**: Neovim + LazyVim
-- **Containers**: Docker + Docker Compose
-- **Reverse proxy**: Traefik (auto-routes `*.home` to your services)
-- **DNS + ad blocking**: AdGuard Home
-- **Storage**: LVM on separate drives with expansion room
-- **Services**: Jellyfin, Immich, qBittorrent, Syncthing, Beszel, GitHub runners
-- **CLI**: `homekase` fish function to create apps, update, and check status
+- **Shell tools**: fish, starship, lazygit, fzf, btop, neovim, and more — installed à la carte via `homekase init`
+- **Containers**: Docker + Docker Compose per service, no shared reverse proxy
+- **Remote access**: Tailscale (MagicDNS + Serve for HTTPS on your tailnet)
+- **Firewall**: UFW with per-service open/close via `homekase open/close`
+- **Services**: Jellyfin, Immich, qBittorrent, Filebrowser, Vikunja, local AI (Ollama)
+- **CLI**: `homekase` — install, manage, inspect, and back up everything
 
-## Phase 0: Install Ubuntu Server
-
-### Requirements
+## Hardware requirements
 
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
@@ -27,95 +23,106 @@ Inspired by [Omakub](https://github.com/basecamp/omakub).
 | Data drive | — | 500 GB SSD |
 | Storage drive | — | 1 TB+ HDD |
 
-### Installation
+## Installation
 
-1. Download [Ubuntu Server 24.04 LTS](https://ubuntu.com/download/server)
-2. Flash to USB: `dd if=ubuntu-24.04-live-server-amd64.iso of=/dev/sdX bs=4M`
-3. Boot from USB on your server
-4. In the installer:
-   - **Language**: your preference
-   - **Keyboard**: your layout
-   - **Network**: choose wired connection, note the IP
-   - **Proxy**: leave blank
-   - **Mirror**: default
-   - **Storage**: select your OS drive (250 GB SSD)
-     - Use **entire disk**
-     - **Do NOT enable LVM** (keep it simple for the OS disk)
-   - **Profile**: create your user and hostname
-   - **SSH**: enable **Install OpenSSH server**
-   - **Snaps**: skip all optional snaps
-5. Wait for installation to complete
-6. Reboot and remove USB
-7. Your server is ready
-
-## Phase 1: Run homekase
+SSH into your server, then:
 
 ```bash
-ssh youruser@192.168.x.x
-curl -fsSL https://raw.githubusercontent.com/FabriSilve/homekase/master/setup.sh | sudo bash
+# Install prerequisites (git, yq, gum)
+sudo apt-get install -y git
+sudo snap install yq
+curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+sudo apt update && sudo apt install -y gum
+
+# Clone and install
+git clone https://github.com/FabriSilve/homekase.git ~/homekase
+cd ~/homekase
+sudo bash install.sh
 ```
 
-The script will guide you through:
-- System update
-- Tool installation (fish, neovim, lazygit, fzf, yazi, gh, etc.)
-- Disk selection and LVM setup for `/data` and `/storage`
-- Docker + Traefik + AdGuard Home
-- Service selection menu
-- Summary with access URLs
+`install.sh` sets up an SSH key for GitHub, clones the repo to `/opt/homekase-cli`, symlinks `homekase` to `/usr/local/bin`, and initialises the config at `/etc/homekase/homekase.yml`.
 
-## Usage
+## First-time setup
+
+Run these once after installation, in any order:
 
 ```bash
-# Create a new app
-homekase create my-app
-
-# Re-run setup (idempotent — safe to run anytime)
-homekase update
-
-# Check system status
-homekase status
+homekase init                  # pick and install shell tools interactively
+homekase server docker         # install Docker engine + create homekase-net bridge
+homekase server firewall setup # configure UFW with sane defaults
+homekase server vpn            # install Tailscale and enable MagicDNS
 ```
 
-## Directory Layout
+## Commands
 
-```
-/opt/homelab/
-├── traefik/          # Reverse proxy
-├── monitoring/       # Beszel dashboard
-├── apps/             # Your custom apps
-│   └── my-app/
-│       ├── docker-compose.yml
-│       ├── api/
-│       ├── frontend/
-│       └── .github/workflows/deploy.yml
-├── jellyfin/         # Media server
-├── immich/           # Photo backup
-├── qbittorrent/      # Torrent client
-├── syncthing/        # File sync
-├── github-runner/    # CI/CD runners
-└── urls.txt          # Service URLs
+### Services
 
-/data/                # Fast SSD — databases, configs
-/storage/             # Large HDD — media, photos, torrents
+```bash
+homekase list                  # browse available and installed services
+homekase add <service>         # deploy a service (interactive port + Tailscale prompt)
+homekase remove <service>      # stop and optionally delete a service
 ```
 
-## URL Map
+Available services: `jellyfin`, `immich`, `qbittorrent`, `filebrowser`, `vikunja`, `assistant`
 
-| URL | Service |
-|-----|---------|
-| `http://dashboard.home` | Traefik dashboard |
-| `http://dns.home` | AdGuard Home |
-| `http://monitoring.home` | Beszel monitoring |
-| `http://jellyfin.home` | Jellyfin media |
-| `http://photos.home` | Immich photos |
-| `http://torrent.home` | qBittorrent |
-| `http://sync.home` | Syncthing |
-| `http://<app>.home` | Your apps |
+### Firewall
 
-## DNS for *.home
+```bash
+homekase open <service>        # expose service port in UFW (LAN testing)
+homekase close <service>       # remove UFW rule for the service
+```
 
-To access services by name, configure your router's DHCP to advertise your server's IP as the DNS server (AdGuard Home handles resolution). Or add entries to each device's `/etc/hosts`:
+### Operations
+
+```bash
+homekase status                # system stats + all running services with URLs
+homekase status --json         # machine-readable output
+homekase backup                # snapshot data and databases for all services
+homekase backup <service>      # snapshot a specific service
+homekase update                # pull latest homekase from GitHub
+homekase uninstall             # remove homekase CLI (keeps /data, /storage, /backup)
+```
+
+### Server setup
+
+```bash
+homekase server ssh            # harden SSH (key-only login, fail2ban)
+homekase server firewall       # manage UFW rules
+homekase server network        # show network interfaces and gateway
+homekase server vpn            # install/configure Tailscale
+homekase server swap           # create 6 GB swap with swappiness=10
+homekase server disk           # show disk layout and usage
+homekase server docker         # install Docker engine and create homekase-net
+```
+
+## Access
+
+Each service runs on a port you choose during `homekase add`. No shared reverse proxy.
+
+| Context | URL |
+|---------|-----|
+| Local network | `http://<server-ip>:<port>` |
+| LAN by name (after `homekase open`) | `http://<server-ip>:<port>` |
+| Remote (Tailscale) | `https://<hostname>.<tailnet>.ts.net:<port>` |
+
+Run `homekase status` to list all running services with their URLs.
+
+## Directory layout
 
 ```
-192.168.x.x  dashboard.home dns.home monitoring.home jellyfin.home photos.home torrent.home sync.home
+/opt/homekase/
+├── jellyfin/
+│   ├── docker-compose.yml
+│   └── .env
+├── immich/
+│   ├── docker-compose.yml
+│   └── .env
+└── ...
+
+/data/           # fast SSD — databases, config files
+/storage/        # large HDD — media, photos, torrents
+/backup/         # snapshots created by homekase backup
+/etc/homekase/
+└── homekase.yml # CLI state: installed services, ports, paths
 ```
