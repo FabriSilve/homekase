@@ -27,6 +27,7 @@ deploy_vikunja() {
       VIKUNJA_DATABASE_TYPE: sqlite
       VIKUNJA_DATABASE_PATH: /app/vikunja/files/vikunja.db
       VIKUNJA_SERVICE_FRONTENDURL: http://localhost:\${PORT}
+      VIKUNJA_SERVICE_PUBLICURL: http://localhost:\${PORT}
     networks:
       - homelab-net
     labels:
