@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HOMEKASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export HOMEKASE_DIR
+export HOMEKASE_REPO_DIR="$HOMEKASE_DIR"
+
+source "$HOMEKASE_DIR/lib/common.sh"
+source "$HOMEKASE_DIR/lib/config.sh"
+
+cmd_help() {
+  echo
+  echo -e "${BOLD}homekase${RESET} — homelab CLI"
+  echo
+  echo -e "${BOLD}USAGE${RESET}"
+  echo "  homekase <command> [options]"
+  echo
+  echo -e "${BOLD}COMMANDS${RESET}"
+  printf "  %-22s %s\n" "init"            "Install CLI tools (git, docker, fzf, ...)"
+  printf "  %-22s %s\n" "server <cmd>"    "Server setup: ssh firewall network vpn swap disk docker"
+  printf "  %-22s %s\n" "list"            "List available and installed services"
+  printf "  %-22s %s\n" "add <name>"      "Install a service"
+  printf "  %-22s %s\n" "remove <name>"   "Remove a service"
+  printf "  %-22s %s\n" "status"          "Server and services status  (--json for structured output)"
+  printf "  %-22s %s\n" "backup [app]"    "Snapshot app data  (--incremental for delta backup)"
+  printf "  %-22s %s\n" "update"          "Pull latest homekase from GitHub"
+  printf "  %-22s %s\n" "uninstall"       "Remove homekase from this server"
+  echo
+  echo "  Run 'homekase <command> --help' for command-specific help."
+  echo
+}
+
+cmd_update() {
+  require_root
+  local ssh_key
+  ssh_key="$(config_get 'ssh_key')"
+  header "Updating homekase"
+  info "Pulling latest from GitHub..."
+  GIT_SSH_COMMAND="ssh -i $ssh_key -o StrictHostKeyChecking=accept-new" \
+    git -C "$HOMEKASE_DIR" pull --ff-only
+  ok "homekase updated."
+}
+
+cmd_uninstall() {
+  require_root
+  warn "Removes homekase CLI and its install directory."
+  warn "Service data in /data, /storage, /backup is NOT touched."
+  echo
+  ask_confirm "Uninstall homekase?" || { info "Cancelled."; return 0; }
+  rm -f /usr/local/bin/homekase
+  rm -rf "$HOMEKASE_DIR"
+  info "Config kept at /etc/homekase — remove manually if desired:"
+  info "  sudo rm -rf /etc/homekase"
+  ok "homekase uninstalled."
+}
+
+cmd="${1:-help}"
+shift || true
+[[ "$cmd" != "--help" && "$cmd" != "-h" ]] || cmd="help"
+
+case "$cmd" in
+  init)      source "$HOMEKASE_DIR/lib/init.sh";                cmd_init "$@" ;;
+  server)    source "$HOMEKASE_DIR/lib/server/server.sh";       cmd_server "$@" ;;
+  list)      source "$HOMEKASE_DIR/lib/services/service.sh";    cmd_list "$@" ;;
+  add)       source "$HOMEKASE_DIR/lib/services/service.sh";    cmd_add "$@" ;;
+  remove)    source "$HOMEKASE_DIR/lib/services/service.sh";    cmd_remove "$@" ;;
+  status)    source "$HOMEKASE_DIR/lib/status.sh";              cmd_status "$@" ;;
+  backup)    source "$HOMEKASE_DIR/lib/backup.sh";              cmd_backup "$@" ;;
+  update)    cmd_update ;;
+  uninstall) cmd_uninstall ;;
+  help)      cmd_help ;;
+  *)
+    error "Unknown command: $cmd"
+    echo
+    cmd_help
+    exit 1
+    ;;
+esac
