@@ -53,7 +53,7 @@ tailscale_serve_setup() {
     return 0
   fi
   if ask_confirm "Expose port ${port} via Tailscale Serve (HTTPS)?"; then
-    tailscale serve https "${port}" http://localhost:"${port}" \
+    tailscale serve --bg --set-path "${port}" http://localhost:"${port}" \
       || warn "tailscale serve failed — check tailscale status"
     echo "true"
   else
@@ -84,6 +84,7 @@ write_compose_file() {
 # Starts a service via Docker Compose.
 start_service() {
   local name="$1"
+  docker network create homelab-net 2>/dev/null || true
   docker compose -f "${HOMELAB_DIR}/${name}/docker-compose.yml" up -d
 }
 
