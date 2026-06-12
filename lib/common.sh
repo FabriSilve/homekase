@@ -16,8 +16,7 @@ require_root() {
   local uid
   uid="$(id -u)"
   if [[ "${EUID:-${uid}}" -ne 0 ]]; then
-    error "This command requires root. Run with sudo."
-    exit 1
+    exec sudo "${HOMEKASE_ORIG_CMD[@]}"
   fi
 }
 
