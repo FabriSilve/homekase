@@ -1,3 +1,15 @@
 #!/usr/bin/env bash
-# Stub — replaced in Task 4
-cmd_server_network() { warn "homekase server network: not yet implemented"; }
+
+cmd_server_network() {
+  header "Network Interfaces"
+  ip -br addr show
+  echo
+
+  header "Default Gateway"
+  ip route | grep default
+  echo
+
+  header "DNS Nameservers"
+  grep nameserver /etc/resolv.conf
+  echo
+}
