@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154  # BOLD/RESET set by sourcing script
 
 _firewall_help() {
   echo
@@ -17,23 +18,25 @@ _firewall_help() {
 
 cmd_server_firewall() {
   local subcmd="${1:-}"
-  [[ "$subcmd" == "--help" || "$subcmd" == "-h" ]] && { _firewall_help; return 0; }
+  [[ "${subcmd}" == "--help" || "${subcmd}" == "-h" ]] && { _firewall_help; return 0; }
 
-  if [[ -z "$subcmd" ]]; then
+  if [[ -z "${subcmd}" ]]; then
     _firewall_help
     return 0
   fi
 
   shift
 
-  case "$subcmd" in
+  case "${subcmd}" in
     setup)
       require_root
       header "UFW firewall setup"
       ufw default deny incoming
       ufw default allow outgoing
       ufw allow 22/tcp comment 'SSH'
-      if [[ "$(config_get 'tailscale.installed')" == "true" ]]; then
+      local ts_installed
+      ts_installed="$(config_get 'tailscale.installed')"
+      if [[ "${ts_installed}" == "true" ]]; then
         ufw allow in on tailscale0
         info "Tailscale interface rule added (tailscale0)"
       fi
@@ -43,7 +46,7 @@ cmd_server_firewall() {
       ;;
     open)
       local port="${1:-}"
-      if [[ -z "$port" ]]; then
+      if [[ -z "${port}" ]]; then
         error "Usage: homekase server firewall open <port>"
         return 1
       fi
@@ -53,7 +56,7 @@ cmd_server_firewall() {
       ;;
     close)
       local port="${1:-}"
-      if [[ -z "$port" ]]; then
+      if [[ -z "${port}" ]]; then
         error "Usage: homekase server firewall close <port>"
         return 1
       fi
@@ -65,7 +68,7 @@ cmd_server_firewall() {
       ufw status verbose
       ;;
     *)
-      error "Unknown firewall subcommand: $subcmd"
+      error "Unknown firewall subcommand: ${subcmd}"
       echo
       _firewall_help
       return 1

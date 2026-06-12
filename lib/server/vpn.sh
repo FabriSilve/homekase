@@ -7,6 +7,7 @@ cmd_server_vpn() {
   if ! is_installed tailscale; then
     if ask_confirm "Tailscale is not installed. Install now?"; then
       info "Installing Tailscale..."
+      # shellcheck disable=SC2312
       curl -fsSL https://tailscale.com/install.sh | sh
       ok "Tailscale installed."
     else
@@ -21,19 +22,22 @@ cmd_server_vpn() {
   tailscale up
 
   info "Reading Tailscale hostname..."
-  local hostname
-  hostname="$(tailscale status --json | yq '.Self.DNSName' -)"
+  local ts_json hostname
+  ts_json="$(tailscale status --json)"
+  hostname="$(echo "${ts_json}" | yq '.Self.DNSName' -)"
   hostname="${hostname%.}"
 
   config_set 'tailscale.installed' 'true'
-  config_set 'tailscale.hostname' "$hostname"
-  ok "Config updated: tailscale.hostname=$hostname"
+  config_set 'tailscale.hostname' "${hostname}"
+  ok "Config updated: tailscale.hostname=${hostname}"
 
-  if [[ "$(config_get 'ufw.enabled')" == "true" ]]; then
+  local ufw_enabled
+  ufw_enabled="$(config_get 'ufw.enabled')"
+  if [[ "${ufw_enabled}" == "true" ]]; then
     info "UFW is enabled — adding tailscale0 allow rule..."
     ufw allow in on tailscale0
     ok "UFW rule added for tailscale0."
   fi
 
-  ok "Tailscale ready. Hostname: $hostname"
+  ok "Tailscale ready. Hostname: ${hostname}"
 }

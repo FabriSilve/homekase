@@ -6,7 +6,7 @@ cmd_server_network() {
   echo
 
   header "Default Gateway"
-  ip route | grep default
+  ip route show | grep default || true
   echo
 
   header "DNS Nameservers"

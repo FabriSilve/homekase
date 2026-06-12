@@ -33,10 +33,10 @@ EOF
 
   _sshd_set() {
     local key="$1" value="$2"
-    if grep -qE "^#?${key}[[:space:]]" "$cfg"; then
-      sed -i "s|^#\?${key}[[:space:]].*|${key} ${value}|" "$cfg"
+    if grep -qE "^#?${key}[[:space:]]" "${cfg}"; then
+      sed -i "s|^#\?${key}[[:space:]].*|${key} ${value}|" "${cfg}"
     else
-      echo "${key} ${value}" >> "$cfg"
+      echo "${key} ${value}" >> "${cfg}"
     fi
   }
 

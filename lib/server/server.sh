@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154  # BOLD/RESET/HOMEKASE_DIR set by sourcing script
 
 _server_help() {
   echo
@@ -22,25 +23,25 @@ _server_help() {
 
 cmd_server() {
   local subcmd="${1:-}"
-  [[ "$subcmd" == "--help" || "$subcmd" == "-h" ]] && { _server_help; return 0; }
+  [[ "${subcmd}" == "--help" || "${subcmd}" == "-h" ]] && { _server_help; return 0; }
 
-  if [[ -z "$subcmd" ]]; then
+  if [[ -z "${subcmd}" ]]; then
     _server_help
     return 0
   fi
 
   shift
 
-  case "$subcmd" in
-    ssh)      source "$HOMEKASE_DIR/lib/server/ssh.sh";      cmd_server_ssh "$@" ;;
-    firewall) source "$HOMEKASE_DIR/lib/server/firewall.sh"; cmd_server_firewall "$@" ;;
-    network)  source "$HOMEKASE_DIR/lib/server/network.sh";  cmd_server_network "$@" ;;
-    vpn)      source "$HOMEKASE_DIR/lib/server/vpn.sh";      cmd_server_vpn "$@" ;;
-    swap)     source "$HOMEKASE_DIR/lib/server/swap.sh";     cmd_server_swap "$@" ;;
-    disk)     source "$HOMEKASE_DIR/lib/server/disk.sh";     cmd_server_disk "$@" ;;
-    docker)   source "$HOMEKASE_DIR/lib/server/docker.sh";   cmd_server_docker "$@" ;;
+  case "${subcmd}" in
+    ssh)      source "${HOMEKASE_DIR}/lib/server/ssh.sh";      cmd_server_ssh "$@" ;;
+    firewall) source "${HOMEKASE_DIR}/lib/server/firewall.sh"; cmd_server_firewall "$@" ;;
+    network)  source "${HOMEKASE_DIR}/lib/server/network.sh";  cmd_server_network "$@" ;;
+    vpn)      source "${HOMEKASE_DIR}/lib/server/vpn.sh";      cmd_server_vpn "$@" ;;
+    swap)     source "${HOMEKASE_DIR}/lib/server/swap.sh";     cmd_server_swap "$@" ;;
+    disk)     source "${HOMEKASE_DIR}/lib/server/disk.sh";     cmd_server_disk "$@" ;;
+    docker)   source "${HOMEKASE_DIR}/lib/server/docker.sh";   cmd_server_docker "$@" ;;
     *)
-      error "Unknown server subcommand: $subcmd"
+      error "Unknown server subcommand: ${subcmd}"
       echo
       _server_help
       return 1
