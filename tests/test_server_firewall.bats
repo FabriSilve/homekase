@@ -66,10 +66,10 @@ teardown() {
   [[ "$output" == *"ufw allow 8096/tcp"* ]]
 }
 
-@test "cmd_server_firewall close <port> calls ufw deny" {
+@test "cmd_server_firewall close <port> calls ufw delete allow" {
   run cmd_server_firewall close 8096
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ufw deny 8096/tcp"* ]]
+  [[ "$output" == *"ufw delete allow 8096/tcp"* ]]
 }
 
 @test "cmd_server_firewall status calls ufw status verbose" {

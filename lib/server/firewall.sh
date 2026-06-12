@@ -61,7 +61,7 @@ cmd_server_firewall() {
         return 1
       fi
       require_root
-      ufw deny "${port}/tcp"
+      ufw delete allow "${port}/tcp"
       ok "Port ${port}/tcp closed."
       ;;
     status)

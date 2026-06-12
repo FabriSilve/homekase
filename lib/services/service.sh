@@ -100,7 +100,24 @@ cmd_remove() {
     echo "Run 'homekase list' to see available services."
     exit 1
   fi
+
+  local port
+  port="$(config_app_get "${name}" "port" 2>/dev/null || true)"
+
   # shellcheck source=/dev/null
   source "${HOMEKASE_DIR}/lib/services/${name}.sh"
   "remove_${name}"
+
+  if [[ -n "${port}" && "${port}" != "null" ]]; then
+    local ufw_status
+    ufw_status="$(ufw status 2>/dev/null | head -1 || true)"
+    if [[ "${ufw_status}" == "Status: active" ]]; then
+      local ufw_rules
+      ufw_rules="$(ufw status 2>/dev/null || true)"
+      if echo "${ufw_rules}" | grep -q "^${port}/tcp"; then
+        warn "Port ${port}/tcp is still open in UFW."
+        warn "Run: homekase server firewall close ${port}"
+      fi
+    fi
+  fi
 }
