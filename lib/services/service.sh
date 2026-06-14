@@ -121,3 +121,18 @@ cmd_remove() {
     fi
   fi
 }
+
+cmd_logs() {
+  local name="${1:-}"
+  if [[ -z "${name}" ]]; then
+    error "Usage: homekase logs <service>"
+    echo "Run 'homekase list' to see available services."
+    exit 1
+  fi
+  if ! config_app_installed "${name}" 2>/dev/null; then
+    error "Service ${name} is not installed"
+    exit 1
+  fi
+  shift
+  docker compose -f "${HOMELAB_DIR}/${name}/docker-compose.yml" logs "$@"
+}
