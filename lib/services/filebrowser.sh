@@ -6,12 +6,13 @@ deploy_filebrowser() {
   require_root
   header "Installing Filebrowser"
 
-  local PORT STORAGE_PATH ADMIN_PASSWORD TS
+  local PORT STORAGE_PATH ADMIN_PASSWORD TS BIND_ADDR
 
   PORT="$(port_wizard "filebrowser" 1)"
   STORAGE_PATH="$(ask_input "Storage root to browse" "/storage")"
   ADMIN_PASSWORD="$(ask_input "Admin password (shown once, stored in .env)" "")"
   TS="$(tailscale_serve_setup "${PORT}")"
+  BIND_ADDR="$(bind_address "${TS}")"
 
   write_service_dir "filebrowser"
 
@@ -21,7 +22,7 @@ deploy_filebrowser() {
     container_name: filebrowser
     restart: unless-stopped
     ports:
-      - \"\${PORT}:80\"
+      - \"\${BIND_ADDR}\${PORT}:80\"
     volumes:
       - \${STORAGE_PATH}:/srv
       - ${HOMELAB_DIR}/filebrowser/filebrowser.db:/database.db
@@ -45,7 +46,8 @@ networks:
   write_env_file "filebrowser" "PORT=${PORT}
 STORAGE_PATH=${STORAGE_PATH}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
-TS=${TS}"
+TS=${TS}
+BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${STORAGE_PATH}"
 
@@ -56,7 +58,7 @@ TS=${TS}"
   config_app_set filebrowser storage_path "${STORAGE_PATH}"
   config_app_set filebrowser tailscale    "${TS}"
 
-  ok "Filebrowser running on port ${PORT}  →  http://localhost:${PORT}"
+  ok "Filebrowser running on port ${PORT}  →  $(service_url "${PORT}")"
   info "Login with admin / <your chosen password>"
 }
 

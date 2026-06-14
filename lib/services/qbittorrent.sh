@@ -6,12 +6,13 @@ deploy_qbittorrent() {
   require_root
   header "Installing qBittorrent"
 
-  local PORT TORRENTS_PATH USE_VPN TS
+  local PORT TORRENTS_PATH USE_VPN TS BIND_ADDR
   local WG_PRIVATE_KEY WG_SERVER WG_SERVER_PUBKEY
 
   PORT="$(port_wizard "qbittorrent" 1)"
   TORRENTS_PATH="$(ask_input "Torrents storage path" "/storage/torrents")"
   TS="$(tailscale_serve_setup "${PORT}")"
+  BIND_ADDR="$(bind_address "${TS}")"
 
   if ask_confirm "Route traffic through VPN (Gluetun/WireGuard)?"; then
     USE_VPN="true"
@@ -38,7 +39,7 @@ deploy_qbittorrent() {
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - \"\${PORT}:8080\"
+      - \"\${BIND_ADDR}\${PORT}:8080\"
     environment:
       VPN_SERVICE_PROVIDER: custom
       VPN_TYPE: wireguard
@@ -83,7 +84,7 @@ networks:
       PGID: 1000
       WEBUI_PORT: 8080
     ports:
-      - \"\${PORT}:8080\"
+      - \"\${BIND_ADDR}\${PORT}:8080\"
     volumes:
       - \${TORRENTS_PATH}:/downloads
     networks:
@@ -106,7 +107,8 @@ TS=${TS}
 USE_VPN=${USE_VPN}
 WG_PRIVATE_KEY=${WG_PRIVATE_KEY}
 WG_SERVER=${WG_SERVER}
-WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}"
+WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}
+BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${TORRENTS_PATH}"
 
@@ -117,7 +119,7 @@ WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}"
   config_app_set qbittorrent storage_path "${TORRENTS_PATH}"
   config_app_set qbittorrent tailscale    "${TS}"
 
-  ok "qBittorrent running on port ${PORT}  →  http://localhost:${PORT}"
+  ok "qBittorrent running on port ${PORT}  →  $(service_url "${PORT}")"
 }
 
 remove_qbittorrent() {

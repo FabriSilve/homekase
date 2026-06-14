@@ -7,7 +7,7 @@ deploy_immich() {
   require_root
   header "Installing Immich"
 
-  local PORT DATA_PATH PHOTOS_PATH DB_PASS TS IMMICH_URL IMMICH_EXTERNAL_DOMAIN
+  local PORT DATA_PATH PHOTOS_PATH DB_PASS TS IMMICH_URL IMMICH_EXTERNAL_DOMAIN BIND_ADDR
 
   PORT="$(port_wizard "immich" 1)"
   DATA_PATH="$(ask_input "Postgres data path" "/data/config/immich")"
@@ -17,6 +17,7 @@ deploy_immich() {
   IMMICH_URL="$(service_url "${PORT}")"
   IMMICH_EXTERNAL_DOMAIN="${IMMICH_URL#https://}"
   IMMICH_EXTERNAL_DOMAIN="${IMMICH_EXTERNAL_DOMAIN#http://}"
+  BIND_ADDR="$(bind_address "${TS}")"
 
   write_service_dir "immich"
 
@@ -30,7 +31,7 @@ deploy_immich() {
       - redis
       - database
     ports:
-      - \"\${PORT}:3001\"
+      - \"\${BIND_ADDR}\${PORT}:3001\"
     volumes:
       - \${PHOTOS_PATH}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -108,7 +109,8 @@ DB_DATABASE_NAME=immich
 REDIS_HOSTNAME=redis
 IMMICH_SERVER_URL=http://immich-server:3001
 IMMICH__SERVER__EXTERNAL_DOMAIN=${IMMICH_EXTERNAL_DOMAIN}
-IMMICH_URL=${IMMICH_URL}"
+IMMICH_URL=${IMMICH_URL}
+BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${DATA_PATH}" "${PHOTOS_PATH}"
 

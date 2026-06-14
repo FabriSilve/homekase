@@ -88,6 +88,18 @@ service_url() {
   fi
 }
 
+# Returns the Docker port bind address based on Tailscale status.
+# When Tailscale is enabled, binds to 127.0.0.1 to avoid conflict with
+# tailscaled which already listens on the Tailscale interface IP.
+# When disabled, binds to all interfaces (empty = 0.0.0.0).
+# Usage: bind_address <ts_flag>
+bind_address() {
+  local ts="$1"
+  if [[ "${ts}" == "true" ]]; then
+    echo "127.0.0.1:"
+  fi
+}
+
 # Creates /opt/homekase/<name>/ directory.
 write_service_dir() {
   local name="$1"

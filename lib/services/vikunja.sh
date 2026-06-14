@@ -6,12 +6,13 @@ deploy_vikunja() {
   require_root
   header "Installing Vikunja"
 
-  local PORT DATA_PATH TS VIKUNJA_URL
+  local PORT DATA_PATH TS VIKUNJA_URL BIND_ADDR
 
   PORT="$(port_wizard "vikunja" 1)"
   DATA_PATH="$(ask_input "Vikunja data path" "/data/config/vikunja")"
   TS="$(tailscale_serve_setup "${PORT}")"
   VIKUNJA_URL="$(service_url "${PORT}")"
+  BIND_ADDR="$(bind_address "${TS}")"
 
   write_service_dir "vikunja"
 
@@ -21,7 +22,7 @@ deploy_vikunja() {
     container_name: vikunja
     restart: unless-stopped
     ports:
-      - \"\${PORT}:3456\"
+      - \"\${BIND_ADDR}\${PORT}:3456\"
     volumes:
       - \${DATA_PATH}:/app/vikunja/files
     environment:
@@ -46,7 +47,8 @@ networks:
   write_env_file "vikunja" "PORT=${PORT}
 DATA_PATH=${DATA_PATH}
 TS=${TS}
-VIKUNJA_URL=${VIKUNJA_URL}"
+VIKUNJA_URL=${VIKUNJA_URL}
+BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${DATA_PATH}"
   chown -R 1000:0 "${DATA_PATH}"

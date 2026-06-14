@@ -6,13 +6,14 @@ deploy_jellyfin() {
   require_root
   header "Installing Jellyfin"
 
-  local PORT DATA_PATH MEDIA_PATH TS JELLYFIN_URL
+  local PORT DATA_PATH MEDIA_PATH TS JELLYFIN_URL BIND_ADDR
 
   PORT="$(port_wizard "jellyfin" 1)"
   DATA_PATH="$(ask_input "Jellyfin config/data path" "/data/config/jellyfin")"
   MEDIA_PATH="$(ask_input "Media storage path" "/storage/media")"
   TS="$(tailscale_serve_setup "${PORT}")"
   JELLYFIN_URL="$(service_url "${PORT}")"
+  BIND_ADDR="$(bind_address "${TS}")"
 
   write_service_dir "jellyfin"
 
@@ -22,7 +23,7 @@ deploy_jellyfin() {
     container_name: jellyfin
     restart: unless-stopped
     ports:
-      - \"\${PORT}:8096\"
+      - \"\${BIND_ADDR}\${PORT}:8096\"
     volumes:
       - \${DATA_PATH}:/config
       - \${MEDIA_PATH}:/media:ro
@@ -43,7 +44,8 @@ networks:
 DATA_PATH=${DATA_PATH}
 MEDIA_PATH=${MEDIA_PATH}
 TS=${TS}
-JELLYFIN_URL=${JELLYFIN_URL}"
+JELLYFIN_URL=${JELLYFIN_URL}
+BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${DATA_PATH}" "${MEDIA_PATH}"
 

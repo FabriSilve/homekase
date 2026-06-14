@@ -61,7 +61,7 @@ TS=${TS}"
   config_app_set assistant port      "${PORT}"
   config_app_set assistant tailscale "${TS}"
 
-  ok "Assistant running on port ${PORT}  →  http://localhost:${PORT}"
+  ok "Assistant running on port ${PORT}  →  $(service_url "${PORT}")"
   info "Model: ${model}"
 }
 
