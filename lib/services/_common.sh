@@ -61,6 +61,18 @@ tailscale_serve_setup() {
   fi
 }
 
+# Removes a Tailscale Serve mapping for a given port.
+# Usage: tailscale_serve_remove <port>
+tailscale_serve_remove() {
+  local port="$1"
+  local ts_installed
+  ts_installed="$(config_get 'tailscale.installed' 2>/dev/null || echo 'false')"
+  if [[ "${ts_installed}" != "true" ]]; then
+    return 0
+  fi
+  tailscale serve --https="${port}" off &>/dev/null || true
+}
+
 # Build the external-facing service URL based on Tailscale config.
 # Usage: service_url <port>
 # Prints "https://<tailscale-hostname>:<port>" when tailscale is set up,

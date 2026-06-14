@@ -126,6 +126,9 @@ IMMICH_URL=${IMMICH_URL}"
 remove_immich() {
   require_root
   header "Removing Immich"
+  local port
+  port="$(config_app_get immich port 2>/dev/null || true)"
+  [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
   remove_service_dir "immich"
   config_app_remove immich
   ok "Immich removed."

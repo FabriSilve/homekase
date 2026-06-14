@@ -123,6 +123,9 @@ WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}"
 remove_qbittorrent() {
   require_root
   header "Removing qBittorrent"
+  local port
+  port="$(config_app_get qbittorrent port 2>/dev/null || true)"
+  [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
   remove_service_dir "qbittorrent"
   config_app_remove qbittorrent
   ok "qBittorrent removed."

@@ -68,6 +68,9 @@ TS=${TS}"
 remove_assistant() {
   require_root
   header "Removing Local AI Assistant"
+  local port
+  port="$(config_app_get assistant port 2>/dev/null || true)"
+  [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
   remove_service_dir "assistant"
   config_app_remove assistant
   ok "Assistant removed."

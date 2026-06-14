@@ -63,6 +63,9 @@ TS=${TS}"
 remove_filebrowser() {
   require_root
   header "Removing Filebrowser"
+  local port
+  port="$(config_app_get filebrowser port 2>/dev/null || true)"
+  [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
   remove_service_dir "filebrowser"
   config_app_remove filebrowser
   ok "Filebrowser removed."

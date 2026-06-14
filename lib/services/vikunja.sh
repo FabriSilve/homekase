@@ -64,6 +64,9 @@ VIKUNJA_URL=${VIKUNJA_URL}"
 remove_vikunja() {
   require_root
   header "Removing Vikunja"
+  local port
+  port="$(config_app_get vikunja port 2>/dev/null || true)"
+  [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
   remove_service_dir "vikunja"
   config_app_remove vikunja
   ok "Vikunja removed."

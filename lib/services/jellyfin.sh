@@ -61,6 +61,9 @@ JELLYFIN_URL=${JELLYFIN_URL}"
 remove_jellyfin() {
   require_root
   header "Removing Jellyfin"
+  local port
+  port="$(config_app_get jellyfin port 2>/dev/null || true)"
+  [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
   remove_service_dir "jellyfin"
   config_app_remove jellyfin
   ok "Jellyfin removed."
