@@ -35,6 +35,7 @@ cmd_help() {
   printf "  %-22s %s\n" "status"          "Server and services status  (--json for structured output)"
   printf "  %-22s %s\n" "backup [app]"    "Snapshot app data  (--incremental for delta backup)"
   printf "  %-22s %s\n" "update"          "Pull latest homekase from GitHub"
+  printf "  %-22s %s\n" "update <name>"   "Update a service (pull + rebuild/restart)"
   printf "  %-22s %s\n" "uninstall"       "Remove homekase from this server"
   echo
   echo "  Run 'homekase <command> --help' for command-specific help."
@@ -42,6 +43,12 @@ cmd_help() {
 }
 
 cmd_update() {
+  local name="${1:-}"
+  if [[ -n "${name}" ]]; then
+    source "${HOMEKASE_DIR}/lib/services/service.sh"
+    cmd_update_service "$@"
+    return
+  fi
   require_root
   local ssh_key
   ssh_key="$(config_get 'ssh_key')"
@@ -84,7 +91,7 @@ case "${cmd}" in
   close)     source "${HOMEKASE_DIR}/lib/port.sh";                cmd_close "$@" ;;
   status)    source "${HOMEKASE_DIR}/lib/status.sh";              cmd_status "$@" ;;
   backup)    source "${HOMEKASE_DIR}/lib/backup.sh";              cmd_backup "$@" ;;
-  update)    cmd_update ;;
+  update)    cmd_update "$@" ;;
   uninstall) cmd_uninstall ;;
   help)      cmd_help ;;
   *)

@@ -136,3 +136,41 @@ cmd_logs() {
   shift
   docker compose -f "${HOMELAB_DIR}/${name}/docker-compose.yml" logs "$@"
 }
+
+cmd_update_service() {
+  local name="${1:-}"
+  if [[ -z "${name}" ]]; then
+    error "Usage: homekase update <service>"
+    echo "Run 'homekase list' to see available services."
+    exit 1
+  fi
+  if ! config_app_installed "${name}" 2>/dev/null; then
+    error "Service ${name} is not installed"
+    exit 1
+  fi
+
+  require_root
+  header "Updating ${name}"
+
+  local dir="${HOMELAB_DIR}/${name}"
+  local compose_file="${dir}/docker-compose.yml"
+
+  if [[ ! -f "${compose_file}" ]]; then
+    compose_file="${dir}/docker-compose.yml"
+    [[ -f "${compose_file}" ]] || { error "No compose file found for ${name}"; exit 1; }
+  fi
+
+  if [[ -d "${dir}/.git" ]]; then
+    local ssh_key
+    ssh_key="$(config_get 'ssh_key' 2>/dev/null || echo '/etc/homekase/.ssh/id_ed25519')"
+    info "Pulling latest code..."
+    GIT_SSH_COMMAND="ssh -i ${ssh_key} -o StrictHostKeyChecking=accept-new" \
+      git -C "${dir}" pull --ff-only
+    docker compose -f "${compose_file}" build
+  else
+    docker compose -f "${compose_file}" pull
+  fi
+
+  docker compose -f "${compose_file}" up -d
+  ok "${name} updated."
+}
