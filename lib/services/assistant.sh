@@ -40,13 +40,17 @@ deploy_assistant() {
       git clone git@github.com:FabriSilve/server-assistant.git "${REPO_DIR}"
   fi
 
-  local PORT TS
+  local PORT TS BIND_ADDR ASSISTANT_URL
   PORT="$(port_wizard "assistant" 1)"
   TS="$(tailscale_serve_setup "${PORT}")"
+  BIND_ADDR="$(bind_address "${TS}")"
+  ASSISTANT_URL="$(service_url "${PORT}")"
 
   write_env_file "assistant" "PORT=${PORT}
 OLLAMA_MODEL=${model}
-TS=${TS}"
+TS=${TS}
+BIND_ADDR=${BIND_ADDR}
+ASSISTANT_URL=${ASSISTANT_URL}"
 
   info "Building assistant image (this may take a few minutes)..."
   docker compose -f "${REPO_DIR}/docker-compose.yml" build
@@ -61,7 +65,7 @@ TS=${TS}"
   config_app_set assistant port      "${PORT}"
   config_app_set assistant tailscale "${TS}"
 
-  ok "Assistant running on port ${PORT}  →  $(service_url "${PORT}")"
+  ok "Assistant running on port ${PORT}  →  ${ASSISTANT_URL}"
   info "Model: ${model}"
 }
 
