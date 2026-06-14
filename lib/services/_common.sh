@@ -61,6 +61,21 @@ tailscale_serve_setup() {
   fi
 }
 
+# Build the external-facing service URL based on Tailscale config.
+# Usage: service_url <port>
+# Prints "https://<tailscale-hostname>:<port>" when tailscale is set up,
+# otherwise prints "http://localhost:<port>".
+service_url() {
+  local port="$1"
+  local ts_host
+  ts_host="$(config_get 'tailscale.hostname' 2>/dev/null || true)"
+  if [[ -n "${ts_host}" ]]; then
+    echo "https://${ts_host}:${port}"
+  else
+    echo "http://localhost:${port}"
+  fi
+}
+
 # Creates /opt/homekase/<name>/ directory.
 write_service_dir() {
   local name="$1"

@@ -6,11 +6,12 @@ deploy_vikunja() {
   require_root
   header "Installing Vikunja"
 
-  local PORT DATA_PATH TS
+  local PORT DATA_PATH TS VIKUNJA_URL
 
   PORT="$(port_wizard "vikunja" 1)"
   DATA_PATH="$(ask_input "Vikunja data path" "/data/config/vikunja")"
   TS="$(tailscale_serve_setup "${PORT}")"
+  VIKUNJA_URL="$(service_url "${PORT}")"
 
   write_service_dir "vikunja"
 
@@ -26,8 +27,8 @@ deploy_vikunja() {
     environment:
       VIKUNJA_DATABASE_TYPE: sqlite
       VIKUNJA_DATABASE_PATH: /app/vikunja/files/vikunja.db
-      VIKUNJA_SERVICE_FRONTENDURL: http://localhost:\${PORT}
-      VIKUNJA_SERVICE_PUBLICURL: http://localhost:\${PORT}
+      VIKUNJA_SERVICE_FRONTENDURL: \${VIKUNJA_URL}
+      VIKUNJA_SERVICE_PUBLICURL: \${VIKUNJA_URL}
     networks:
       - homelab-net
     labels:
@@ -44,7 +45,8 @@ networks:
 
   write_env_file "vikunja" "PORT=${PORT}
 DATA_PATH=${DATA_PATH}
-TS=${TS}"
+TS=${TS}
+VIKUNJA_URL=${VIKUNJA_URL}"
 
   mkdir -p "${DATA_PATH}"
   chown -R 1000:0 "${DATA_PATH}"
@@ -56,7 +58,7 @@ TS=${TS}"
   config_app_set vikunja data_path  "${DATA_PATH}"
   config_app_set vikunja tailscale  "${TS}"
 
-  ok "Vikunja running on port ${PORT}  →  http://localhost:${PORT}"
+  ok "Vikunja running on port ${PORT}  →  ${VIKUNJA_URL}"
 }
 
 remove_vikunja() {
