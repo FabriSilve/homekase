@@ -69,6 +69,6 @@ remove_assistant() {
   require_root
   header "Removing Local AI Assistant"
   remove_service_dir "assistant"
-  config_app_set assistant installed false
+  config_app_remove assistant
   ok "Assistant removed."
 }

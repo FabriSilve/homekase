@@ -124,6 +124,6 @@ remove_qbittorrent() {
   require_root
   header "Removing qBittorrent"
   remove_service_dir "qbittorrent"
-  config_app_set qbittorrent installed false
+  config_app_remove qbittorrent
   ok "qBittorrent removed."
 }

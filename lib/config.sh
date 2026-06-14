@@ -36,6 +36,11 @@ config_app_set() {
   yq -i ".apps.$1.$2 = \"$3\"" "${HOMEKASE_CONFIG}"
 }
 
+config_app_remove() {
+  _config_require_yq
+  yq -i "del(.apps.$1)" "${HOMEKASE_CONFIG}"
+}
+
 config_init() {
   [[ -f "${HOMEKASE_CONFIG}" ]] && return 0
   local template="${HOMEKASE_REPO_DIR}/templates/homekase.yml.template"

@@ -65,6 +65,6 @@ remove_vikunja() {
   require_root
   header "Removing Vikunja"
   remove_service_dir "vikunja"
-  config_app_set vikunja installed false
+  config_app_remove vikunja
   ok "Vikunja removed."
 }

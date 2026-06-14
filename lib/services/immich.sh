@@ -127,6 +127,6 @@ remove_immich() {
   require_root
   header "Removing Immich"
   remove_service_dir "immich"
-  config_app_set immich installed false
+  config_app_remove immich
   ok "Immich removed."
 }

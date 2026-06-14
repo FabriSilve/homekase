@@ -64,6 +64,6 @@ remove_filebrowser() {
   require_root
   header "Removing Filebrowser"
   remove_service_dir "filebrowser"
-  config_app_set filebrowser installed false
+  config_app_remove filebrowser
   ok "Filebrowser removed."
 }

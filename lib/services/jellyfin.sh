@@ -62,6 +62,6 @@ remove_jellyfin() {
   require_root
   header "Removing Jellyfin"
   remove_service_dir "jellyfin"
-  config_app_set jellyfin installed false
+  config_app_remove jellyfin
   ok "Jellyfin removed."
 }
