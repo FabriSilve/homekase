@@ -7,13 +7,16 @@ deploy_immich() {
   require_root
   header "Installing Immich"
 
-  local PORT DATA_PATH PHOTOS_PATH DB_PASS TS
+  local PORT DATA_PATH PHOTOS_PATH DB_PASS TS IMMICH_URL IMMICH_EXTERNAL_DOMAIN
 
   PORT="$(port_wizard "immich" 1)"
   DATA_PATH="$(ask_input "Postgres data path" "/data/config/immich")"
   PHOTOS_PATH="$(ask_input "Photos upload path" "/storage/photos")"
   DB_PASS="$(openssl rand -base64 16)"
   TS="$(tailscale_serve_setup "${PORT}")"
+  IMMICH_URL="$(service_url "${PORT}")"
+  IMMICH_EXTERNAL_DOMAIN="${IMMICH_URL#https://}"
+  IMMICH_EXTERNAL_DOMAIN="${IMMICH_EXTERNAL_DOMAIN#http://}"
 
   write_service_dir "immich"
 
@@ -103,7 +106,9 @@ DB_HOSTNAME=database
 DB_USERNAME=immich
 DB_DATABASE_NAME=immich
 REDIS_HOSTNAME=redis
-IMMICH_SERVER_URL=http://immich-server:3001"
+IMMICH_SERVER_URL=http://immich-server:3001
+IMMICH__SERVER__EXTERNAL_DOMAIN=${IMMICH_EXTERNAL_DOMAIN}
+IMMICH_URL=${IMMICH_URL}"
 
   mkdir -p "${DATA_PATH}" "${PHOTOS_PATH}"
 
@@ -115,7 +120,7 @@ IMMICH_SERVER_URL=http://immich-server:3001"
   config_app_set immich storage_path "${PHOTOS_PATH}"
   config_app_set immich tailscale    "${TS}"
 
-  ok "Immich running on port ${PORT}  →  http://localhost:${PORT}"
+  ok "Immich running on port ${PORT}  →  ${IMMICH_URL}"
 }
 
 remove_immich() {

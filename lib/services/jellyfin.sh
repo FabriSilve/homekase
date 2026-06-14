@@ -6,12 +6,13 @@ deploy_jellyfin() {
   require_root
   header "Installing Jellyfin"
 
-  local PORT DATA_PATH MEDIA_PATH TS
+  local PORT DATA_PATH MEDIA_PATH TS JELLYFIN_URL
 
   PORT="$(port_wizard "jellyfin" 1)"
   DATA_PATH="$(ask_input "Jellyfin config/data path" "/data/config/jellyfin")"
   MEDIA_PATH="$(ask_input "Media storage path" "/storage/media")"
   TS="$(tailscale_serve_setup "${PORT}")"
+  JELLYFIN_URL="$(service_url "${PORT}")"
 
   write_service_dir "jellyfin"
 
@@ -41,7 +42,8 @@ networks:
   write_env_file "jellyfin" "PORT=${PORT}
 DATA_PATH=${DATA_PATH}
 MEDIA_PATH=${MEDIA_PATH}
-TS=${TS}"
+TS=${TS}
+JELLYFIN_URL=${JELLYFIN_URL}"
 
   mkdir -p "${DATA_PATH}" "${MEDIA_PATH}"
 
@@ -53,7 +55,7 @@ TS=${TS}"
   config_app_set jellyfin storage_path "${MEDIA_PATH}"
   config_app_set jellyfin tailscale    "${TS}"
 
-  ok "Jellyfin running on port ${PORT}  →  http://localhost:${PORT}"
+  ok "Jellyfin running on port ${PORT}  →  ${JELLYFIN_URL}"
 }
 
 remove_jellyfin() {
