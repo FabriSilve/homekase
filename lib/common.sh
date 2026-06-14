@@ -5,7 +5,7 @@ BLUE='\033[0;34m'; BOLD='\033[1m'; RESET='\033[0m'
 
 info()   { echo -e "${BLUE}ℹ${RESET}  $*"; }
 ok()     { echo -e "${GREEN}✓${RESET}  $*"; }
-warn()   { echo -e "${YELLOW}⚠${RESET}  $*"; }
+warn()   { echo -e "${YELLOW}⚠${RESET}  $*" >&2; }
 error()  { echo -e "${RED}✗${RESET}  $*" >&2; }
 header() { echo -e "\n${BOLD}${BLUE}▶ $*${RESET}\n"; }
 

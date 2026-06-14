@@ -70,7 +70,7 @@ tailscale_serve_remove() {
   if [[ "${ts_installed}" != "true" ]]; then
     return 0
   fi
-  tailscale serve --https="${port}" off &>/dev/null || true
+  tailscale serve --https="${port}" off || warn "failed to remove tailscale serve mapping for port ${port}"
 }
 
 # Build the external-facing service URL based on Tailscale config.
