@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homekase App</title>
+  <script src="https://unpkg.com/htmx.org@2"></script>
+  <script src="https://unpkg.com/htmx.org@2/dist/ext/sse.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-card: #0d1525;
+      --bg-card-hover: #111d33;
+      --accent-cyan: #00f0ff;
+      --accent-green: #00ff88;
+      --accent-blue: #4488ff;
+      --accent-red: #ff4466;
+      --text-primary: #e0e8f0;
+      --text-muted: #5a6a7a;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-bottom: 1.5rem;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+
+    .header-info {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 240, 255, 0.1);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .card:hover {
+      border-color: rgba(0, 240, 255, 0.3);
+      background: var(--bg-card-hover);
+    }
+
+    .card-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .card-row .value {
+      color: var(--text-primary);
+    }
+
+    .status-running { color: var(--accent-green); }
+    .status-exited  { color: var(--accent-red); }
+    .status-default { color: var(--text-muted); }
+
+    .card-link {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-size: 0.75rem;
+    }
+
+    .card-link:hover {
+      text-decoration: underline;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 0.375rem;
+      padding: 0.5rem 1rem;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .btn:hover {
+      border-color: var(--accent-cyan);
+      background: var(--bg-card-hover);
+    }
+
+    .btn-danger {
+      border-color: rgba(255, 68, 102, 0.3);
+    }
+
+    .btn-danger:hover {
+      border-color: var(--accent-red);
+    }
+
+    .terminal {
+      background: #000;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      min-height: 200px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .terminal-input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .terminal-input {
+      flex: 1;
+      background: #000;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 0.375rem;
+      padding: 0.5rem;
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      outline: none;
+    }
+
+    .terminal-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: var(--accent-green);
+      color: var(--bg-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⟐ Homekase</h1>
+    <div class="header-info">
+      {% if tailscale.hostname %}
+        {{ tailscale.hostname }}{% if tailscale.domain %}.{{ tailscale.domain }}{% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section-title">Services</div>
+  <div class="grid" id="service-grid">
+    {% for s in services %}
+    <div class="card">
+      <div class="card-name">{{ s.name }}</div>
+      <div class="card-row">
+        <span>Status</span>
+        <span class="value status-{{ 'running' if s.status == 'running' else 'exited' if s.status == 'exited' else 'default' }}">{{ s.status }}</span>
+      </div>
+      {% if s.port %}
+      <div class="card-row">
+        <span>Port</span>
+        <span class="value">{{ s.port }}</span>
+      </div>
+      {% endif %}
+      {% if s.url and s.url != '-' %}
+      <div class="card-row">
+        <a href="{{ s.url }}" class="card-link" target="_blank">Open →</a>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-title">Quick Actions</div>
+  <div class="actions">
+    <button class="btn"
+            hx-post="/api/exec"
+            hx-vals='{"command": "uptime"}'
+            hx-target="#terminal"
+            hx-swap="innerHTML"
+            hx-ext="sse">
+      ⚡ Uptime
+    </button>
+    <button class="btn"
+            hx-post="/api/exec"
+            hx-vals='{"command": "df -h /"}'
+            hx-target="#terminal"
+            hx-swap="innerHTML"
+            hx-ext="sse">
+      💾 Disk
+    </button>
+    <button class="btn"
+            hx-post="/api/exec"
+            hx-vals='{"command": "free -h"}'
+            hx-target="#terminal"
+            hx-swap="innerHTML"
+            hx-ext="sse">
+      🧠 Memory
+    </button>
+    <button class="btn"
+            hx-post="/api/exec"
+            hx-vals='{"command": "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"}'
+            hx-target="#terminal"
+            hx-swap="innerHTML"
+            hx-ext="sse">
+      🐳 Docker
+    </button>
+    <button class="btn btn-danger"
+            hx-post="/api/exec"
+            hx-vals='{"command": "sudo shutdown -h now"}'
+            hx-target="#terminal"
+            hx-swap="innerHTML"
+            hx-ext="sse">
+      ⏻ Shutdown
+    </button>
+    <button class="btn btn-danger"
+            hx-post="/api/exec"
+            hx-vals='{"command": "sudo reboot"}'
+            hx-target="#terminal"
+            hx-swap="innerHTML"
+            hx-ext="sse">
+      🔄 Reboot
+    </button>
+  </div>
+
+  <div class="section-title">Terminal</div>
+  <div class="terminal" id="terminal">
+    Type a command below or click a quick action.
+  </div>
+  <div class="terminal-input-row">
+    <input type="text" class="terminal-input" id="cmd-input"
+           placeholder="$ enter command..."
+           autofocus>
+    <button class="btn" id="cmd-run">Run</button>
+  </div>
+
+  <script>
+    document.getElementById('cmd-run').addEventListener('click', runCommand);
+    document.getElementById('cmd-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') runCommand();
+    });
+
+    function runCommand() {
+      const input = document.getElementById('cmd-input');
+      const cmd = input.value.trim();
+      if (!cmd) return;
+
+      const term = document.getElementById('terminal');
+      term.innerHTML = '';
+
+      const source = new EventSource('/api/exec?command=' + encodeURIComponent(cmd));
+      source.onmessage = function(e) {
+        term.innerHTML += e.data.replace(/\n/g, '<br>');
+        term.scrollTop = term.scrollHeight;
+      };
+      source.onerror = function() {
+        source.close();
+      };
+
+      input.value = '';
+    }
+
+    // Handle quick actions via SSE
+    document.querySelectorAll('[hx-post][hx-ext="sse"]').forEach(btn => {
+      btn.addEventListener('htmx:afterRequest', function() {
+        const term = document.getElementById('terminal');
+        term.scrollTop = term.scrollHeight;
+      });
+    });
+  </script>
+</body>
+</html>
