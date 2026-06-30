@@ -6,17 +6,23 @@ SERVICE_NAME="homekase-app"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 _ensure_venv() {
-  if python3 -m venv "${HOME}/.test-ensurepip" 2>/dev/null; then
-    rm -rf "${HOME}/.test-ensurepip"
+  local test_dir
+  test_dir="$(mktemp -d)"
+  if python3 -m venv "${test_dir}" 2>/dev/null; then
+    rm -rf "${test_dir}"
     return 0
   fi
+  rm -rf "${test_dir}"
 
   info "python3-venv not available. Installing..."
   local py_ver
   py_ver="$(python3 --version | grep -oP '\d+\.\d+')"
 
   if command -v apt &>/dev/null; then
-    apt update -qq && apt install -y "python${py_ver}-venv"
+    apt install -y "python${py_ver}-venv" 2>/dev/null || {
+      apt update -qq 2>/dev/null || true
+      apt install -y "python${py_ver}-venv"
+    }
   elif command -v dnf &>/dev/null; then
     dnf install -y python3-virtualenv
   elif command -v pacman &>/dev/null; then
