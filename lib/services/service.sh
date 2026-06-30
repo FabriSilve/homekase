@@ -15,7 +15,8 @@ SERVICES=(
   "qbittorrent:Torrent client with optional VPN"
   "filebrowser:Web file manager for family sharing"
   "vikunja:Task management and calendar"
-  "assistant:Local AI assistant (RAM-gated)"
+  "assistant:AI assistant with chat, tools, and web search"
+  "app:Server dashboard with service list, actions, terminal"
 )
 
 _service_description() {
@@ -152,22 +153,24 @@ cmd_update_service() {
   require_root
   header "Updating ${name}"
 
-  local dir="${HOMELAB_DIR}/${name}"
-  local compose_file="${dir}/docker-compose.yml"
+  local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
+  local deploy_dir="${HOMELAB_DIR}/${name}"
+  local compose_file=""
 
-  if [[ ! -f "${compose_file}" ]]; then
-    compose_file="${dir}/docker-compose.yml"
-    [[ -f "${compose_file}" ]] || { error "No compose file found for ${name}"; exit 1; }
+  if [[ -f "${repo_dir}/docker-compose.yml" ]]; then
+    compose_file="${repo_dir}/docker-compose.yml"
+  elif [[ -f "${deploy_dir}/docker-compose.yml" ]]; then
+    compose_file="${deploy_dir}/docker-compose.yml"
+  else
+    error "No compose file found for ${name}"
+    exit 1
   fi
 
-  if [[ -d "${dir}/.git" ]]; then
-    local ssh_key
-    ssh_key="$(config_get 'ssh_key' 2>/dev/null || echo '/etc/homekase/.ssh/id_ed25519')"
-    info "Pulling latest code..."
-    GIT_SSH_COMMAND="ssh -i ${ssh_key} -o StrictHostKeyChecking=accept-new" \
-      git -C "${dir}" pull --ff-only
+  if [[ -d "${repo_dir}" ]]; then
+    info "Rebuilding local images..."
     docker compose -f "${compose_file}" build
   else
+    info "Pulling latest images..."
     docker compose -f "${compose_file}" pull
   fi
 

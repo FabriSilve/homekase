@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # Local AI assistant service installer.
 # Sourced by lib/services/service.sh on `homekase add assistant`.
-# Clones git@github.com:FabriSilve/server-assistant.git, selects an Ollama
-# model based on available RAM, then builds + starts via docker compose.
+# Deploys from services/assistant/ within the homekase repo.
 
 deploy_assistant() {
   require_root
   header "Installing Local AI Assistant"
 
   local ram_mb model
-  # shellcheck disable=SC2312
   ram_mb="$(free -m 2>/dev/null | awk '/^Mem:/{print $2}')"
   if [[ -z "${ram_mb}" ]]; then
     error "Cannot read available RAM (is 'free' installed?)"
@@ -25,41 +23,36 @@ deploy_assistant() {
   fi
   info "Selected model: ${model}  (detected ${ram_mb}MB RAM)"
 
-  local ssh_key
-  ssh_key="$(config_get 'ssh_key' 2>/dev/null || echo '/etc/homekase/.ssh/id_ed25519')"
-  local REPO_DIR="${HOMELAB_DIR}/assistant"
-
-  if [[ -d "${REPO_DIR}/.git" ]]; then
-    info "Updating server-assistant repo..."
-    GIT_SSH_COMMAND="ssh -i ${ssh_key} -o StrictHostKeyChecking=accept-new" \
-      git -C "${REPO_DIR}" pull --ff-only
-  else
-    info "Cloning server-assistant repo..."
-    mkdir -p "$(dirname "${REPO_DIR}")"
-    GIT_SSH_COMMAND="ssh -i ${ssh_key} -o StrictHostKeyChecking=accept-new" \
-      git clone git@github.com:FabriSilve/server-assistant.git "${REPO_DIR}"
-  fi
-
   local PORT TS BIND_ADDR ASSISTANT_URL
   PORT="$(port_wizard "assistant" 1)"
   TS="$(tailscale_serve_setup "${PORT}")"
   BIND_ADDR="$(bind_address "${TS}")"
   ASSISTANT_URL="$(service_url "${PORT}")"
 
+  local ASSISTANT_DIR="${HOMEKASE_REPO_DIR}/services/assistant"
+  local DEPLOY_DIR="${HOMELAB_DIR}/assistant"
+
+  mkdir -p "${DEPLOY_DIR}"
+
   write_env_file "assistant" "PORT=${PORT}
 OLLAMA_MODEL=${model}
+OLLAMA_MEM_LIMIT=12g
+OLLAMA_CPU_LIMIT=4
+OLLAMA_MEM_RESERVATION=4g
+SEARXNG_SECRET_KEY=$(openssl rand -hex 32 2>/dev/null || echo 'changeme')
 TS=${TS}
 BIND_ADDR=${BIND_ADDR}
 ASSISTANT_URL=${ASSISTANT_URL}"
 
-  info "Building assistant image (this may take a few minutes)..."
-  docker compose -f "${REPO_DIR}/docker-compose.yml" build
+  info "Building agent image (this may take a few minutes)..."
+  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" build
 
   info "Starting assistant..."
-  docker compose -f "${REPO_DIR}/docker-compose.yml" up -d
+  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" up -d
 
   info "Pulling Ollama model ${model} (large download — be patient)..."
-  docker exec ollama ollama pull "${model}"
+  docker exec assistant-ollama ollama pull "${model}" 2>/dev/null || \
+    docker exec ollama ollama pull "${model}"
 
   config_app_set assistant installed true
   config_app_set assistant port      "${PORT}"
@@ -67,6 +60,7 @@ ASSISTANT_URL=${ASSISTANT_URL}"
 
   ok "Assistant running on port ${PORT}  →  ${ASSISTANT_URL}"
   info "Model: ${model}"
+  info "Open WebUI: ${ASSISTANT_URL}"
 }
 
 remove_assistant() {
@@ -75,6 +69,12 @@ remove_assistant() {
   local port
   port="$(config_app_get assistant port 2>/dev/null || true)"
   [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
+
+  local ASSISTANT_DIR="${HOMEKASE_REPO_DIR}/services/assistant"
+  if [[ -f "${ASSISTANT_DIR}/docker-compose.yml" ]]; then
+    docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" down --remove-orphans 2>/dev/null || true
+  fi
+
   remove_service_dir "assistant"
   config_app_remove assistant
   ok "Assistant removed."
