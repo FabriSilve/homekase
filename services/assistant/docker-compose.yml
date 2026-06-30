@@ -1,0 +1,121 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: assistant-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: ${OLLAMA_MEM_LIMIT:-12g}
+          cpus: "${OLLAMA_CPU_LIMIT:-4}"
+        reservations:
+          memory: ${OLLAMA_MEM_RESERVATION:-4g}
+    networks:
+      - assistant-net
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: assistant-searxng
+    restart: unless-stopped
+    volumes:
+      - searxng-data:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-changeme}
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+        reservations:
+          memory: 128m
+    networks:
+      - assistant-net
+
+  fabric:
+    build:
+      context: https://github.com/danielmiessler/Fabric.git
+      dockerfile: scripts/docker/Dockerfile
+    container_name: assistant-fabric
+    restart: unless-stopped
+    entrypoint: ["sh", "-c"]
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - DEFAULT_MODEL=${OLLAMA_MODEL:-qwen2.5:3b}
+      - DEFAULT_VENDOR=Ollama
+      - FABRIC_PORT=8080
+    command:
+      - |
+        mkdir -p "$$HOME/.config/fabric"
+        cat > "$$HOME/.config/fabric/.env" <<EOF
+        OLLAMA_URL=$$OLLAMA_URL
+        DEFAULT_MODEL=$$DEFAULT_MODEL
+        DEFAULT_VENDOR=$$DEFAULT_VENDOR
+        FABRIC_PORT=$$FABRIC_PORT
+        EOF
+        exec fabric --serve --address 0.0.0.0:$$FABRIC_PORT
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: "0.5"
+        reservations:
+          memory: 32m
+    depends_on:
+      - ollama
+    networks:
+      - assistant-net
+
+  agent:
+    build: ./agent
+    container_name: assistant-agent
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-}
+      - FABRIC_URL=http://fabric:8080
+      - SEARXNG_URL=http://searxng:8888
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1"
+        reservations:
+          memory: 128m
+    depends_on:
+      - ollama
+      - fabric
+      - searxng
+    networks:
+      - assistant-net
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: assistant-open-webui
+    restart: unless-stopped
+    volumes:
+      - open-webui-data:/app/backend/data
+    environment:
+      - OPENAI_API_BASE_URL=http://agent:8000/v1
+      - OPENAI_API_KEY=not-needed
+      - WEBUI_NAME=Homekase Assistant
+      - WEBUI_URL=http://localhost:${PORT:-3000}
+    ports:
+      - "${BIND_ADDR}${PORT:-3000}:8080"
+    depends_on:
+      - agent
+    networks:
+      - assistant-net
+
+volumes:
+  ollama-data:
+  searxng-data:
+  open-webui-data:
+
+networks:
+  assistant-net:
+    driver: bridge
