@@ -114,88 +114,6 @@ def _get_service_url(ts: dict[str, str], port: str) -> str:
     return "-"
 
 
-_ACTIONS_HTML = """\
-<div class="actions" id="actions-section">
-  <button class="btn"
-          hx-post="/api/exec"
-          hx-vals='{"command": "uptime"}'
-          hx-target="#terminal"
-          hx-swap="innerHTML">
-    ⚡ Uptime
-  </button>
-  <button class="btn"
-          hx-post="/api/exec"
-          hx-vals='{"command": "df -h /"}'
-          hx-target="#terminal"
-          hx-swap="innerHTML">
-    💾 Disk
-  </button>
-  <button class="btn"
-          hx-post="/api/exec"
-          hx-vals='{"command": "free -h"}'
-          hx-target="#terminal"
-          hx-swap="innerHTML">
-    🧠 Memory
-  </button>
-  <button class="btn"
-          hx-post="/api/exec"
-          hx-vals='{"command": "docker ps"}'
-          hx-target="#terminal"
-          hx-swap="innerHTML">
-    🐳 Docker
-  </button>
-  <button class="btn btn-danger"
-          hx-post="/api/exec"
-          hx-vals='{"command": "sudo shutdown -h now"}'
-          hx-target="#terminal"
-          hx-swap="innerHTML">
-    ⏻ Shutdown
-  </button>
-  <button class="btn btn-danger"
-          hx-post="/api/exec"
-          hx-vals='{"command": "sudo reboot"}'
-          hx-target="#terminal"
-          hx-swap="innerHTML">
-    🔄 Reboot
-  </button>
-</div>"""
-
-_TERMINAL_HTML = """\
-<div class="terminal" id="terminal">
-  Type a command below and press Enter.
-</div>
-<form class="terminal-input-row"
-      hx-post="/api/exec"
-      hx-target="#terminal"
-      hx-swap="innerHTML"
-      hx-on::after-request="this.reset()">
-  <input type="text" class="terminal-input" name="command"
-         placeholder="$ enter command..." autofocus>
-</form>"""
-
-_LOCK_FORM_HTML = """\
-<div class="lock-overlay">
-  <p class="lock-text" style="color:var(--text-muted);font-size:0.75rem;margin-bottom:0.5rem;">
-    🔒 Enter dashboard password to unlock
-  </p>
-  <form hx-post="/api/unlock" hx-swap="outerHTML" class="lock-form" style="display:flex;gap:0.5rem;">
-    <input type="password" name="password" class="terminal-input"
-           placeholder="Password" style="width:200px;">
-    <button class="btn" type="submit">Unlock</button>
-  </form>
-</div>"""
-
-
-def _section_response(authenticated: bool, section: str) -> HTMLResponse:
-    content = {
-        "actions": _ACTIONS_HTML,
-        "terminal": _TERMINAL_HTML,
-    }.get(section, "")
-    if not authenticated:
-        content = _LOCK_FORM_HTML
-    return HTMLResponse(content)
-
-
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     ts = _get_tailscale_info()
@@ -224,14 +142,21 @@ async def dashboard(request: Request):
     return HTMLResponse(html)
 
 
-@app.get("/api/section/actions", response_class=HTMLResponse)
-async def section_actions(request: Request):
-    return _section_response(_check_session(request), "actions")
-
-
-@app.get("/api/section/terminal", response_class=HTMLResponse)
-async def section_terminal(request: Request):
-    return _section_response(_check_session(request), "terminal")
+@app.get("/api/section/banner", response_class=HTMLResponse)
+async def section_banner(request: Request):
+    if _check_session(request):
+        return HTMLResponse("")
+    return HTMLResponse(
+        '<div id="unlock-banner" style="margin-bottom:1rem;padding:0.75rem;'
+        'background:var(--bg-card);border:1px solid rgba(255,68,102,0.3);'
+        'border-radius:0.5rem;display:flex;gap:0.75rem;align-items:center;">'
+        '<span style="color:var(--accent-red);font-size:0.875rem;">🔒</span>'
+        '<form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;flex:1;">'
+        '<input type="password" name="password" class="terminal-input" '
+        'placeholder="Dashboard password" style="max-width:240px;">'
+        '<button class="btn" type="submit">Unlock</button>'
+        "</form></div>"
+    )
 
 
 @app.post("/api/unlock", response_class=HTMLResponse)
@@ -240,8 +165,16 @@ async def unlock(request: Request):
     password = data.get("password", "")
     if password != DASHBOARD_PASSWORD:
         return HTMLResponse(
-            '<p class="lock-error" style="color:var(--accent-red);font-size:0.75rem;">'
-            "Wrong password</p>"
+            '<div id="unlock-banner" style="margin-bottom:1rem;padding:0.75rem;'
+            'background:var(--bg-card);border:1px solid rgba(255,68,102,0.3);'
+            'border-radius:0.5rem;display:flex;gap:0.75rem;align-items:center;">'
+            '<span style="color:var(--accent-red);font-size:0.875rem;">🔒</span>'
+            '<span style="color:var(--accent-red);font-size:0.75rem;">Wrong password</span>'
+            '<form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;flex:1;">'
+            '<input type="password" name="password" class="terminal-input" '
+            'placeholder="Dashboard password" style="max-width:240px;">'
+            '<button class="btn" type="submit">Unlock</button>'
+            "</form></div>"
         )
     token = _make_session_token()
     resp = HTMLResponse("<script>location.reload()</script>")

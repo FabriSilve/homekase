@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Homekase App</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='28' font-size='28' fill='%2300f0ff'%3E⟐%3C/text%3E%3C/svg%3E">
   <script src="https://unpkg.com/htmx.org@2"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -215,13 +215,14 @@
     {% endfor %}
   </div>
 
-  <div class="section-title">Quick Actions</div>
   {% if dashboard_password %}
-  <div id="actions-section"
-       hx-get="/api/section/actions"
+  <div id="unlock-banner"
+       hx-get="/api/section/banner"
        hx-trigger="load"
-       hx-swap="innerHTML"></div>
-  {% else %}
+       hx-swap="outerHTML"></div>
+  {% endif %}
+
+  <div class="section-title">Quick Actions</div>
   <div class="actions">
     <button class="btn"
             hx-post="/api/exec"
@@ -266,15 +267,8 @@
       🔄 Reboot
     </button>
   </div>
-  {% endif %}
 
   <div class="section-title">Terminal</div>
-  {% if dashboard_password %}
-  <div id="terminal-section"
-       hx-get="/api/section/terminal"
-       hx-trigger="load"
-       hx-swap="innerHTML"></div>
-  {% else %}
   <div class="terminal" id="terminal">
     Type a command below and press Enter.
   </div>
@@ -286,6 +280,5 @@
     <input type="text" class="terminal-input" name="command"
            placeholder="$ enter command..." autofocus>
   </form>
-  {% endif %}
 </body>
 </html>
