@@ -21,6 +21,7 @@ services:
     restart: unless-stopped
     volumes:
       - searxng-data:/etc/searxng
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
     environment:
       - SEARXNG_BASE_URL=http://localhost:8888
       - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-changeme}
@@ -105,6 +106,7 @@ services:
       - OPENAI_API_KEY=not-needed
       - WEBUI_NAME=Homekase Assistant
       - WEBUI_URL=http://localhost:${PORT:-3000}
+      - DEFAULT_MODELS=${OLLAMA_MODEL:-}
     ports:
       - "${BIND_ADDR}${PORT:-3000}:8080"
     depends_on:

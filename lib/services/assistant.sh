@@ -14,14 +14,19 @@ deploy_assistant() {
     exit 1
   fi
 
-  if   (( ram_mb >= 12288 )); then model="qwen2.5:14b"
-  elif (( ram_mb >= 7168  )); then model="qwen2.5:7b"
-  elif (( ram_mb >= 4096  )); then model="qwen2.5:3b"
+  local suggestion=""
+  if   (( ram_mb >= 12288 )); then suggestion="qwen2.5:14b"
+  elif (( ram_mb >= 7168  )); then suggestion="qwen2.5:7b"
+  elif (( ram_mb >= 4096  )); then suggestion="qwen2.5:3b"
   else
     error "Insufficient RAM for assistant (detected ${ram_mb}MB, need at least 4096MB)."
     exit 1
   fi
-  info "Selected model: ${model}  (detected ${ram_mb}MB RAM)"
+
+  echo "  Detected ${ram_mb}MB RAM  (suggested: ${suggestion})"
+  echo "  Other options: qwen2.5:3b (3GB), qwen2.5:7b (7GB), qwen2.5:14b (14GB), llama3.2:3b, llama3.1:8b, etc."
+  read -r -p "  Model [${suggestion}]: " model
+  model="${model:-${suggestion}}"
 
   local PORT TS BIND_ADDR ASSISTANT_URL
   PORT="$(port_wizard "assistant" 1)"
