@@ -171,6 +171,18 @@ cmd_update_service() {
 
   local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
   local deploy_dir="${HOMELAB_DIR}/${name}"
+
+  # Native systemd service
+  if systemctl is-active --quiet "homekase-${name}" 2>/dev/null; then
+    info "Updating native service ${name}..."
+    if [[ -d "${repo_dir}" ]]; then
+      cp -r "${repo_dir}/main.py" "${repo_dir}/templates" "${deploy_dir}/" 2>/dev/null || true
+      systemctl restart "homekase-${name}"
+      ok "${name} updated."
+      return
+    fi
+  fi
+
   local compose_file=""
   local env_file=""
 

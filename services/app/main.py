@@ -1,5 +1,6 @@
 import asyncio
 import os
+import subprocess
 from typing import Any
 
 import httpx
@@ -35,10 +36,13 @@ def _load_config() -> dict[str, Any]:
 def _get_tailscale_info() -> dict[str, str]:
     cfg = _load_config()
     ts = cfg.get("tailscale", {})
-    return {
-        "hostname": ts.get("hostname", ""),
-        "domain": ts.get("domain", ""),
-    }
+    hostname = ts.get("hostname", "")
+    domain = ts.get("domain", "")
+    if hostname and not hostname.endswith(".ts.net"):
+        ts_host = f"{hostname}.{domain}" if domain else hostname
+    else:
+        ts_host = hostname
+    return {"hostname": ts_host, "domain": domain}
 
 
 async def _get_services() -> list[dict[str, Any]]:
@@ -126,18 +130,16 @@ async def exec_command(request: Request):
         return HTMLResponse("<pre>No command provided</pre>")
 
     try:
-        process = await asyncio.create_subprocess_shell(
-            command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            shell=True,
-            executable="/bin/bash",
+        result = subprocess.run(
+            ["bash", "-c", command],
+            capture_output=True, text=True, timeout=30,
         )
-        stdout, _ = await process.communicate()
-        output = stdout.decode("utf-8", errors="replace") if stdout else ""
-        exit_code = process.returncode or 0
+        output = result.stdout + result.stderr
+        exit_code = result.returncode
         html = f"<pre>$ {command}\n{output}\n═══ Process exited with code {exit_code} ═══</pre>"
         return HTMLResponse(html)
+    except subprocess.TimeoutExpired:
+        return HTMLResponse("<pre>Command timed out (30s)</pre>")
     except Exception as e:
         return HTMLResponse(f"<pre>Error: {e}</pre>")
 

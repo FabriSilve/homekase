@@ -268,7 +268,8 @@
   <form class="terminal-input-row"
         hx-post="/api/exec"
         hx-target="#terminal"
-        hx-swap="innerHTML">
+        hx-swap="innerHTML"
+        hx-on::after-request="this.reset()">
     <input type="text" class="terminal-input" name="command"
            placeholder="$ enter command..." autofocus>
   </form>

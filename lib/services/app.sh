@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Server dashboard service installer.
-# Sourced by lib/services/service.sh on `homekase add app`.
-# Deploys from services/app/ within the homekase repo.
+# Deploys natively on the host (not in Docker) via systemd.
+
+SERVICE_NAME="homekase-app"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 deploy_app() {
   require_root
@@ -13,40 +15,70 @@ deploy_app() {
   BIND_ADDR="$(bind_address "${TS}")"
   APP_URL="$(service_url "${PORT}")"
 
-  local APP_DIR="${HOMEKASE_REPO_DIR}/services/app"
-  local DEPLOY_DIR="${HOMELAB_DIR}/app"
+  local APP_DIR="${HOMELAB_DIR}/app"
+  local SRC_DIR="${HOMEKASE_REPO_DIR}/services/app"
+  local VENV_DIR="${APP_DIR}/venv"
 
-  mkdir -p "${DEPLOY_DIR}"
+  mkdir -p "${APP_DIR}"
+
+  info "Copying source files..."
+  cp -r "${SRC_DIR}/main.py" "${SRC_DIR}/pyproject.toml" "${SRC_DIR}/templates" "${APP_DIR}/"
+
+  info "Creating Python virtual environment..."
+  python3 -m venv "${VENV_DIR}"
+
+  info "Installing Python dependencies..."
+  "${VENV_DIR}/bin/pip" install --no-cache-dir \
+    fastapi uvicorn httpx pyyaml jinja2 python-multipart
 
   write_env_file "app" "PORT=${PORT}
 TS=${TS}
 BIND_ADDR=${BIND_ADDR}
-APP_URL=${APP_URL}"
+APP_URL=${APP_URL}
+HOMEKASE_CONFIG=/etc/homekase/homekase.yml"
 
-  info "Building dashboard image..."
-  docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build
+  info "Creating systemd service..."
+  cat > "${SERVICE_FILE}" <<EOF
+[Unit]
+Description=Homekase App Dashboard
+After=network.target docker.service
+Wants=docker.service
 
-  info "Starting dashboard..."
-  docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" up -d
+[Service]
+Type=simple
+ExecStart=${VENV_DIR}/bin/uvicorn main:app --host 0.0.0.0 --port ${PORT}
+WorkingDirectory=${APP_DIR}
+EnvironmentFile=${APP_DIR}/.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl daemon-reload
+  systemctl enable --now "${SERVICE_NAME}"
 
   config_app_set app installed true
   config_app_set app port      "${PORT}"
   config_app_set app tailscale "${TS}"
 
   ok "Dashboard running on port ${PORT}  →  ${APP_URL}"
+  info "Service: ${SERVICE_NAME}"
 }
 
 remove_app() {
   require_root
   header "Removing Server Dashboard"
+
+  systemctl stop "${SERVICE_NAME}" 2>/dev/null || true
+  systemctl disable "${SERVICE_NAME}" 2>/dev/null || true
+  rm -f "${SERVICE_FILE}"
+  systemctl daemon-reload
+
   local port
   port="$(config_app_get app port 2>/dev/null || true)"
   [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
-
-  local APP_DIR="${HOMEKASE_REPO_DIR}/services/app"
-  if [[ -f "${APP_DIR}/docker-compose.yml" ]]; then
-    docker compose -f "${APP_DIR}/docker-compose.yml" down --remove-orphans 2>/dev/null || true
-  fi
 
   remove_service_dir "app"
   config_app_remove app
