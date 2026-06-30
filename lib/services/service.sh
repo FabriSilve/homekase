@@ -136,6 +136,11 @@ cmd_logs() {
   fi
   shift
 
+  if systemctl is-active --quiet "homekase-${name}" 2>/dev/null; then
+    journalctl -u "homekase-${name}" "$@"
+    return
+  fi
+
   local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
   local deploy_dir="${HOMELAB_DIR}/${name}"
   local compose_file=""

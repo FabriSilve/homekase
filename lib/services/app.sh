@@ -75,7 +75,7 @@ Wants=docker.service
 
 [Service]
 Type=simple
-ExecStart=${VENV_DIR}/bin/uvicorn main:app --host 0.0.0.0 --port ${PORT}
+ExecStart=${VENV_DIR}/bin/uvicorn main:app --host 127.0.0.1 --port ${PORT}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_DIR}/.env
 Restart=always
