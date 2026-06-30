@@ -55,6 +55,23 @@ ASSISTANT_URL=${ASSISTANT_URL}"
   info "Starting assistant..."
   docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" up -d
 
+  # Enable JSON API in SearXNG (not activated by default)
+  info "Configuring SearXNG JSON API..."
+  local searxng_container
+  searxng_container="$(docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" ps -q searxng 2>/dev/null || echo "")"
+  if [[ -n "${searxng_container}" ]]; then
+    for i in 1 2 3 4 5; do
+      if docker exec "${searxng_container}" test -f /etc/searxng/settings.yml 2>/dev/null; then
+        break
+      fi
+      sleep 1
+    done
+    docker exec "${searxng_container}" \
+      sed -i 's/^  formats:.*/  formats:\n    - html\n    - json/' /etc/searxng/settings.yml 2>/dev/null || \
+      docker exec "${searxng_container}" sh -c "grep -q json /etc/searxng/settings.yml 2>/dev/null || sed -i '/^formats:/a\    - json' /etc/searxng/settings.yml" 2>/dev/null || true
+    docker restart "${searxng_container}" 2>/dev/null || true
+  fi
+
   info "Pulling Ollama model ${model} (large download — be patient)..."
   docker exec assistant-ollama ollama pull "${model}" 2>/dev/null || \
     docker exec ollama ollama pull "${model}"
