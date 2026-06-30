@@ -1,5 +1,8 @@
 import asyncio
+import hmac
+import hashlib
 import os
+import secrets
 import subprocess
 from typing import Any
 
@@ -23,6 +26,29 @@ _jinja_env = Environment(loader=FileSystemLoader("templates"), auto_reload=False
 
 HOMEKASE_CONFIG = os.environ.get("HOMEKASE_CONFIG", "/etc/homekase/homekase.yml")
 DOCKER_SOCKET = os.environ.get("DOCKER_SOCKET_PATH", "/var/run/docker.sock")
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
+
+_server_secret = secrets.token_hex(32)
+
+
+def _sign_token(token: str) -> str:
+    return hmac.new(_server_secret.encode(), token.encode(), hashlib.sha256).hexdigest()
+
+
+def _make_session_token() -> str:
+    token = secrets.token_hex(16)
+    sig = _sign_token(token)
+    return f"{token}.{sig}"
+
+
+def _check_session(request: Request) -> bool:
+    if not DASHBOARD_PASSWORD:
+        return True
+    cookie = request.cookies.get("homekase_session", "")
+    if "." not in cookie:
+        return False
+    token, sig = cookie.rsplit(".", 1)
+    return hmac.compare_digest(sig, _sign_token(token))
 
 
 def _load_config() -> dict[str, Any]:
@@ -88,8 +114,90 @@ def _get_service_url(ts: dict[str, str], port: str) -> str:
     return "-"
 
 
+_ACTIONS_HTML = """\
+<div class="actions" id="actions-section">
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "uptime"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    ⚡ Uptime
+  </button>
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "df -h /"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    💾 Disk
+  </button>
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "free -h"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    🧠 Memory
+  </button>
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "docker ps"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    🐳 Docker
+  </button>
+  <button class="btn btn-danger"
+          hx-post="/api/exec"
+          hx-vals='{"command": "sudo shutdown -h now"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    ⏻ Shutdown
+  </button>
+  <button class="btn btn-danger"
+          hx-post="/api/exec"
+          hx-vals='{"command": "sudo reboot"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    🔄 Reboot
+  </button>
+</div>"""
+
+_TERMINAL_HTML = """\
+<div class="terminal" id="terminal">
+  Type a command below and press Enter.
+</div>
+<form class="terminal-input-row"
+      hx-post="/api/exec"
+      hx-target="#terminal"
+      hx-swap="innerHTML"
+      hx-on::after-request="this.reset()">
+  <input type="text" class="terminal-input" name="command"
+         placeholder="$ enter command..." autofocus>
+</form>"""
+
+_LOCK_FORM_HTML = """\
+<div class="lock-overlay">
+  <p class="lock-text" style="color:var(--text-muted);font-size:0.75rem;margin-bottom:0.5rem;">
+    🔒 Enter dashboard password to unlock
+  </p>
+  <form hx-post="/api/unlock" hx-swap="outerHTML" class="lock-form" style="display:flex;gap:0.5rem;">
+    <input type="password" name="password" class="terminal-input"
+           placeholder="Password" style="width:200px;">
+    <button class="btn" type="submit">Unlock</button>
+  </form>
+</div>"""
+
+
+def _section_response(authenticated: bool, section: str) -> HTMLResponse:
+    content = {
+        "actions": _ACTIONS_HTML,
+        "terminal": _TERMINAL_HTML,
+    }.get(section, "")
+    if not authenticated:
+        content = _LOCK_FORM_HTML
+    return HTMLResponse(content)
+
+
 @app.get("/", response_class=HTMLResponse)
-async def dashboard():
+async def dashboard(request: Request):
     ts = _get_tailscale_info()
     containers = await _get_services()
     cfg = _load_config()
@@ -111,12 +219,44 @@ async def dashboard():
         services=service_list,
         tailscale=ts,
         installed_apps=list(apps.keys()),
+        dashboard_password=bool(DASHBOARD_PASSWORD),
     )
     return HTMLResponse(html)
 
 
+@app.get("/api/section/actions", response_class=HTMLResponse)
+async def section_actions(request: Request):
+    return _section_response(_check_session(request), "actions")
+
+
+@app.get("/api/section/terminal", response_class=HTMLResponse)
+async def section_terminal(request: Request):
+    return _section_response(_check_session(request), "terminal")
+
+
+@app.post("/api/unlock", response_class=HTMLResponse)
+async def unlock(request: Request):
+    data = await request.form()
+    password = data.get("password", "")
+    if password != DASHBOARD_PASSWORD:
+        return HTMLResponse(
+            '<p class="lock-error" style="color:var(--accent-red);font-size:0.75rem;">'
+            "Wrong password</p>"
+        )
+    token = _make_session_token()
+    resp = HTMLResponse("<script>location.reload()</script>")
+    resp.set_cookie(
+        "homekase_session", token,
+        httponly=True, samesite="lax", max_age=86400,
+    )
+    return resp
+
+
 @app.post("/api/exec", response_class=HTMLResponse)
 async def exec_command(request: Request):
+    if not _check_session(request):
+        return HTMLResponse("<pre>🔒 Unlock the dashboard first</pre>")
+
     command = ""
     content_type = request.headers.get("content-type", "")
     if "application/json" in content_type:
@@ -129,10 +269,14 @@ async def exec_command(request: Request):
     if not command.strip():
         return HTMLResponse("<pre>No command provided</pre>")
 
+    user = os.environ.get("HOMEKASE_USER", "root")
+    cwd = f"/home/{user}" if user != "root" else "/root"
+
     try:
         result = subprocess.run(
             ["bash", "-c", command],
             capture_output=True, text=True, timeout=30,
+            cwd=cwd,
         )
         output = result.stdout + result.stderr
         exit_code = result.returncode

@@ -216,6 +216,12 @@
   </div>
 
   <div class="section-title">Quick Actions</div>
+  {% if dashboard_password %}
+  <div id="actions-section"
+       hx-get="/api/section/actions"
+       hx-trigger="load"
+       hx-swap="innerHTML"></div>
+  {% else %}
   <div class="actions">
     <button class="btn"
             hx-post="/api/exec"
@@ -260,8 +266,15 @@
       🔄 Reboot
     </button>
   </div>
+  {% endif %}
 
   <div class="section-title">Terminal</div>
+  {% if dashboard_password %}
+  <div id="terminal-section"
+       hx-get="/api/section/terminal"
+       hx-trigger="load"
+       hx-swap="innerHTML"></div>
+  {% else %}
   <div class="terminal" id="terminal">
     Type a command below and press Enter.
   </div>
@@ -273,5 +286,6 @@
     <input type="text" class="terminal-input" name="command"
            placeholder="$ enter command..." autofocus>
   </form>
+  {% endif %}
 </body>
 </html>

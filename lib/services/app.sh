@@ -37,11 +37,14 @@ deploy_app() {
   require_root
   header "Installing Server Dashboard"
 
-  local PORT TS BIND_ADDR APP_URL
+  local PORT TS BIND_ADDR APP_URL HOMEKASE_USER DASHBOARD_PASSWORD
   PORT="$(port_wizard "app" 1)"
   TS="$(tailscale_serve_setup "${PORT}")"
   BIND_ADDR="$(bind_address "${TS}")"
   APP_URL="$(service_url "${PORT}")"
+  HOMEKASE_USER="${SUDO_USER:-$(logname 2>/dev/null || echo root)}"
+  read -rsp "Dashboard password (enter for no auth): " DASHBOARD_PASSWORD
+  echo
 
   local APP_DIR="${HOMELAB_DIR}/app"
   local SRC_DIR="${HOMEKASE_REPO_DIR}/services/app"
@@ -64,6 +67,8 @@ deploy_app() {
 TS=${TS}
 BIND_ADDR=${BIND_ADDR}
 APP_URL=${APP_URL}
+HOMEKASE_USER=${HOMEKASE_USER}
+DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
 HOMEKASE_CONFIG=/etc/homekase/homekase.yml"
 
   info "Creating systemd service..."
