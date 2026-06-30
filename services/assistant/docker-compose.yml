@@ -106,6 +106,9 @@ services:
       - WEBUI_NAME=Homekase Assistant
       - WEBUI_URL=http://localhost:${PORT:-3000}
       - DEFAULT_MODELS=${OLLAMA_MODEL:-}
+    labels:
+      - "com.homekase.service=assistant"
+      - "com.homekase.port=${PORT:-3000}"
     ports:
       - "${BIND_ADDR}${PORT:-3000}:8080"
     depends_on:
