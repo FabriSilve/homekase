@@ -135,7 +135,23 @@ cmd_logs() {
     exit 1
   fi
   shift
-  docker compose -f "${HOMELAB_DIR}/${name}/docker-compose.yml" logs "$@"
+
+  local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
+  local deploy_dir="${HOMELAB_DIR}/${name}"
+  local compose_file=""
+  local env_file=""
+
+  if [[ -f "${repo_dir}/docker-compose.yml" ]]; then
+    compose_file="${repo_dir}/docker-compose.yml"
+    [[ -f "${deploy_dir}/.env" ]] && env_file="--env-file ${deploy_dir}/.env"
+  elif [[ -f "${deploy_dir}/docker-compose.yml" ]]; then
+    compose_file="${deploy_dir}/docker-compose.yml"
+  else
+    error "No compose file found for ${name}"
+    exit 1
+  fi
+
+  docker compose -f "${compose_file}" ${env_file} logs "$@"
 }
 
 cmd_update_service() {
@@ -156,9 +172,11 @@ cmd_update_service() {
   local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
   local deploy_dir="${HOMELAB_DIR}/${name}"
   local compose_file=""
+  local env_file=""
 
   if [[ -f "${repo_dir}/docker-compose.yml" ]]; then
     compose_file="${repo_dir}/docker-compose.yml"
+    [[ -f "${deploy_dir}/.env" ]] && env_file="--env-file ${deploy_dir}/.env"
   elif [[ -f "${deploy_dir}/docker-compose.yml" ]]; then
     compose_file="${deploy_dir}/docker-compose.yml"
   else
@@ -168,12 +186,12 @@ cmd_update_service() {
 
   if [[ -d "${repo_dir}" ]]; then
     info "Rebuilding local images..."
-    docker compose -f "${compose_file}" build
+    docker compose -f "${compose_file}" ${env_file} build
   else
     info "Pulling latest images..."
-    docker compose -f "${compose_file}" pull
+    docker compose -f "${compose_file}" ${env_file} pull
   fi
 
-  docker compose -f "${compose_file}" up -d
+  docker compose -f "${compose_file}" ${env_file} up -d
   ok "${name} updated."
 }

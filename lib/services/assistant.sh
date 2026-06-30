@@ -45,10 +45,10 @@ BIND_ADDR=${BIND_ADDR}
 ASSISTANT_URL=${ASSISTANT_URL}"
 
   info "Building agent image (this may take a few minutes)..."
-  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" build
+  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build
 
   info "Starting assistant..."
-  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" up -d
+  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" up -d
 
   info "Pulling Ollama model ${model} (large download — be patient)..."
   docker exec assistant-ollama ollama pull "${model}" 2>/dev/null || \

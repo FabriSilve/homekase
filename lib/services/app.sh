@@ -24,10 +24,10 @@ BIND_ADDR=${BIND_ADDR}
 APP_URL=${APP_URL}"
 
   info "Building dashboard image..."
-  docker compose -f "${APP_DIR}/docker-compose.yml" build
+  docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build
 
   info "Starting dashboard..."
-  docker compose -f "${APP_DIR}/docker-compose.yml" up -d
+  docker compose -f "${APP_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" up -d
 
   config_app_set app installed true
   config_app_set app port      "${PORT}"
