@@ -5,10 +5,10 @@ from typing import Any
 
 import httpx
 import yaml
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader
 
 app = FastAPI(title="Homekase App")
 
@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-templates = Jinja2Templates(directory="templates")
+_jinja_env = Environment(loader=FileSystemLoader("templates"), auto_reload=False)
 
 HOMEKASE_CONFIG = os.environ.get("HOMEKASE_CONFIG", "/etc/homekase/homekase.yml")
 DOCKER_SOCKET = os.environ.get("DOCKER_SOCKET_PATH", "/var/run/docker.sock")
@@ -86,7 +86,7 @@ def _get_service_url(ts: dict[str, str], port: str) -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
+async def dashboard():
     ts = _get_tailscale_info()
     containers = await _get_services()
     cfg = _load_config()
@@ -103,15 +103,13 @@ async def dashboard(request: Request):
             "url": url,
         })
 
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "services": service_list,
-            "tailscale": ts,
-            "installed_apps": list(apps.keys()),
-        },
+    template = _jinja_env.get_template("index.html")
+    html = template.render(
+        services=service_list,
+        tailscale=ts,
+        installed_apps=list(apps.keys()),
     )
+    return HTMLResponse(html)
 
 
 class ExecResult:
