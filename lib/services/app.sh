@@ -53,7 +53,7 @@ deploy_app() {
   mkdir -p "${APP_DIR}"
 
   info "Copying source files..."
-  cp -r "${SRC_DIR}/main.py" "${SRC_DIR}/pyproject.toml" "${SRC_DIR}/templates" "${APP_DIR}/"
+  cp -r "${SRC_DIR}/main.py" "${SRC_DIR}/pyproject.toml" "${SRC_DIR}/templates" "${SRC_DIR}/static" "${APP_DIR}/"
 
   _ensure_venv
   info "Creating Python virtual environment..."
