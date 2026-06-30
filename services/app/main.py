@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 import yaml
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
@@ -112,7 +112,16 @@ async def dashboard():
 
 
 @app.post("/api/exec", response_class=HTMLResponse)
-async def exec_command(command: str = ""):
+async def exec_command(request: Request):
+    command = ""
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        body = await request.json()
+        command = (body or {}).get("command", "")
+    else:
+        form = await request.form()
+        command = form.get("command", "")
+
     if not command.strip():
         return HTMLResponse("<pre>No command provided</pre>")
 

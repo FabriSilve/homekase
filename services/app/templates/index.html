@@ -238,15 +238,13 @@
             hx-swap="innerHTML">
       🧠 Memory
     </button>
-    {% raw %}
     <button class="btn"
             hx-post="/api/exec"
-            hx-vals='{"command": "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"}'
+            hx-vals='{"command": "docker ps"}'
             hx-target="#terminal"
             hx-swap="innerHTML">
       🐳 Docker
     </button>
-    {% endraw %}
     <button class="btn btn-danger"
             hx-post="/api/exec"
             hx-vals='{"command": "sudo shutdown -h now"}'
