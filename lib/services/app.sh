@@ -5,6 +5,28 @@
 SERVICE_NAME="homekase-app"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
+_ensure_venv() {
+  if python3 -m venv "${HOME}/.test-ensurepip" 2>/dev/null; then
+    rm -rf "${HOME}/.test-ensurepip"
+    return 0
+  fi
+
+  info "python3-venv not available. Installing..."
+  local py_ver
+  py_ver="$(python3 --version | grep -oP '\d+\.\d+')"
+
+  if command -v apt &>/dev/null; then
+    apt update -qq && apt install -y "python${py_ver}-venv"
+  elif command -v dnf &>/dev/null; then
+    dnf install -y python3-virtualenv
+  elif command -v pacman &>/dev/null; then
+    pacman -S --noconfirm python-virtualenv
+  else
+    error "Could not install python3-venv. Install python3-venv manually and retry."
+    exit 1
+  fi
+}
+
 deploy_app() {
   require_root
   header "Installing Server Dashboard"
@@ -24,6 +46,7 @@ deploy_app() {
   info "Copying source files..."
   cp -r "${SRC_DIR}/main.py" "${SRC_DIR}/pyproject.toml" "${SRC_DIR}/templates" "${APP_DIR}/"
 
+  _ensure_venv
   info "Creating Python virtual environment..."
   python3 -m venv "${VENV_DIR}"
 
