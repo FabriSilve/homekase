@@ -28,52 +28,45 @@ deploy_assistant() {
   read -r -p "  Model [${suggestion}]: " model
   model="${model:-${suggestion}}"
 
-  local PORT TS BIND_ADDR ASSISTANT_URL
+  local PORT TS BIND_ADDR ASSISTANT_URL SEARXNG_KEY
   PORT="$(port_wizard "assistant" 1)"
   TS="$(tailscale_serve_setup "${PORT}")"
   BIND_ADDR="$(bind_address "${TS}")"
   ASSISTANT_URL="$(service_url "${PORT}")"
+  SEARXNG_KEY="$(openssl rand -hex 32 2>/dev/null || echo 'changeme')"
 
   local ASSISTANT_DIR="${HOMEKASE_REPO_DIR}/services/assistant"
   local DEPLOY_DIR="${HOMELAB_DIR}/assistant"
 
   mkdir -p "${DEPLOY_DIR}"
 
+  info "Writing SearXNG config..."
+  cat > "${DEPLOY_DIR}/searxng-settings.yml" <<EOF
+use_default_settings: true
+server:
+  secret_key: "${SEARXNG_KEY}"
+  bind_address: "0.0.0.0"
+search:
+  formats:
+    - html
+    - json
+EOF
+
   write_env_file "assistant" "PORT=${PORT}
 OLLAMA_MODEL=${model}
 OLLAMA_MEM_LIMIT=12g
 OLLAMA_CPU_LIMIT=4
 OLLAMA_MEM_RESERVATION=4g
-SEARXNG_SECRET_KEY=$(openssl rand -hex 32 2>/dev/null || echo 'changeme')
+SEARXNG_SETTINGS=${DEPLOY_DIR}/searxng-settings.yml
 TS=${TS}
 BIND_ADDR=${BIND_ADDR}
 ASSISTANT_URL=${ASSISTANT_URL}"
-
-  # Remove stale SearXNG config so it regenerates with our env vars
-  docker volume rm assistant_searxng-data 2>/dev/null || true
 
   info "Building agent image (this may take a few minutes)..."
   docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build
 
   info "Starting assistant..."
   docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" up -d
-
-  # Enable JSON API in SearXNG (not activated by default)
-  info "Configuring SearXNG JSON API..."
-  local searxng_container
-  searxng_container="$(docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" ps -q searxng 2>/dev/null || echo "")"
-  if [[ -n "${searxng_container}" ]]; then
-    for i in 1 2 3 4 5; do
-      if docker exec "${searxng_container}" test -f /etc/searxng/settings.yml 2>/dev/null; then
-        break
-      fi
-      sleep 1
-    done
-    docker exec "${searxng_container}" \
-      sed -i 's/^  formats:.*/  formats:\n    - html\n    - json/' /etc/searxng/settings.yml 2>/dev/null || \
-      docker exec "${searxng_container}" sh -c "grep -q json /etc/searxng/settings.yml 2>/dev/null || sed -i '/^formats:/a\    - json' /etc/searxng/settings.yml" 2>/dev/null || true
-    docker restart "${searxng_container}" 2>/dev/null || true
-  fi
 
   info "Pulling Ollama model ${model} (large download — be patient)..."
   docker exec assistant-ollama ollama pull "${model}" 2>/dev/null || \
@@ -98,7 +91,6 @@ remove_assistant() {
   local ASSISTANT_DIR="${HOMEKASE_REPO_DIR}/services/assistant"
   if [[ -f "${ASSISTANT_DIR}/docker-compose.yml" ]]; then
     docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" down --remove-orphans 2>/dev/null || true
-    docker volume rm assistant_searxng-data 2>/dev/null || true
   fi
 
   remove_service_dir "assistant"
