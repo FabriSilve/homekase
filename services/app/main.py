@@ -145,21 +145,81 @@ async def dashboard(request: Request):
     return HTMLResponse(html)
 
 
-@app.get("/api/section/banner", response_class=HTMLResponse)
-async def section_banner(request: Request):
+_DASHBOARD_LOCKED = """\
+<div id="dashboard-content" style="text-align:center;padding:3rem 1rem;">
+  <p style="color:var(--text-muted);margin-bottom:1rem;">🔒 Enter password to access Quick Actions and Terminal</p>
+  <form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;justify-content:center;">
+    <input type="password" name="password" class="terminal-input"
+           placeholder="Dashboard password" style="max-width:240px;">
+    <button class="btn" type="submit">Unlock</button>
+  </form>
+</div>"""
+
+_DASHBOARD_UNLOCKED = """\
+<div class="section-title">Quick Actions</div>
+<div class="actions">
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "uptime"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    ⚡ Uptime
+  </button>
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "df -h /"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    💾 Disk
+  </button>
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "free -h"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    🧠 Memory
+  </button>
+  <button class="btn"
+          hx-post="/api/exec"
+          hx-vals='{"command": "docker ps"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    🐳 Docker
+  </button>
+  <button class="btn btn-danger"
+          hx-post="/api/exec"
+          hx-vals='{"command": "sudo shutdown -h now"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    ⏻ Shutdown
+  </button>
+  <button class="btn btn-danger"
+          hx-post="/api/exec"
+          hx-vals='{"command": "sudo reboot"}'
+          hx-target="#terminal"
+          hx-swap="innerHTML">
+    🔄 Reboot
+  </button>
+</div>
+<div class="section-title">Terminal</div>
+<div class="terminal" id="terminal">
+  Type a command below and press Enter.
+</div>
+<form class="terminal-input-row"
+      hx-post="/api/exec"
+      hx-target="#terminal"
+      hx-swap="innerHTML"
+      hx-on::after-request="this.reset()">
+  <input type="text" class="terminal-input" name="command"
+         placeholder="$ enter command..." autofocus>
+</form>"""
+
+
+@app.get("/api/section/dashboard", response_class=HTMLResponse)
+async def section_dashboard(request: Request):
     if _check_session(request):
-        return HTMLResponse("")
-    return HTMLResponse(
-        '<div id="unlock-banner" style="margin-bottom:1rem;padding:0.75rem;'
-        'background:var(--bg-card);border:1px solid rgba(255,68,102,0.3);'
-        'border-radius:0.5rem;display:flex;gap:0.75rem;align-items:center;">'
-        '<span style="color:var(--accent-red);font-size:0.875rem;">🔒</span>'
-        '<form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;flex:1;">'
-        '<input type="password" name="password" class="terminal-input" '
-        'placeholder="Dashboard password" style="max-width:240px;">'
-        '<button class="btn" type="submit">Unlock</button>'
-        "</form></div>"
-    )
+        return HTMLResponse(_DASHBOARD_UNLOCKED)
+    return HTMLResponse(_DASHBOARD_LOCKED)
 
 
 @app.post("/api/unlock", response_class=HTMLResponse)
@@ -168,12 +228,9 @@ async def unlock(request: Request):
     password = data.get("password", "")
     if password != DASHBOARD_PASSWORD:
         return HTMLResponse(
-            '<div id="unlock-banner" style="margin-bottom:1rem;padding:0.75rem;'
-            'background:var(--bg-card);border:1px solid rgba(255,68,102,0.3);'
-            'border-radius:0.5rem;display:flex;gap:0.75rem;align-items:center;">'
-            '<span style="color:var(--accent-red);font-size:0.875rem;">🔒</span>'
-            '<span style="color:var(--accent-red);font-size:0.75rem;">Wrong password</span>'
-            '<form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;flex:1;">'
+            '<div id="dashboard-content" style="text-align:center;padding:3rem 1rem;">'
+            '<p style="color:var(--accent-red);margin-bottom:1rem;">🔒 Wrong password</p>'
+            '<form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;justify-content:center;">'
             '<input type="password" name="password" class="terminal-input" '
             'placeholder="Dashboard password" style="max-width:240px;">'
             '<button class="btn" type="submit">Unlock</button>'
