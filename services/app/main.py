@@ -1,13 +1,12 @@
 import asyncio
 import os
-from collections.abc import AsyncGenerator
 from typing import Any
 
 import httpx
 import yaml
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 
 app = FastAPI(title="Homekase App")
@@ -112,52 +111,26 @@ async def dashboard():
     return HTMLResponse(html)
 
 
-class ExecResult:
-    def __init__(self, command: str):
-        self.command = command
-
-    async def stream(self) -> AsyncGenerator[str]:
-        yield f"data: $ {self.command}\n\n"
-        try:
-            process = await asyncio.create_subprocess_shell(
-                self.command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-                shell=True,
-                executable="/bin/bash",
-            )
-            assert process.stdout is not None
-            while True:
-                line = await process.stdout.readline()
-                if not line:
-                    break
-                decoded = line.decode("utf-8", errors="replace")
-                yield f"data: {decoded}\n\n"
-            await process.wait()
-            exit_code = process.returncode or 0
-            yield f"data: \n"
-            yield f"data: ═══ Process exited with code {exit_code} ═══\n\n"
-        except Exception as e:
-            yield f"data: Error: {e}\n\n"
-
-
-@app.post("/api/exec")
+@app.post("/api/exec", response_class=HTMLResponse)
 async def exec_command(command: str = ""):
     if not command.strip():
-        return StreamingResponse(
-            _iter_text("data: No command provided\n\n"),
-            media_type="text/event-stream",
+        return HTMLResponse("<pre>No command provided</pre>")
+
+    try:
+        process = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            shell=True,
+            executable="/bin/bash",
         )
-    exec_result = ExecResult(command)
-    return StreamingResponse(
-        exec_result.stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+        stdout, _ = await process.communicate()
+        output = stdout.decode("utf-8", errors="replace") if stdout else ""
+        exit_code = process.returncode or 0
+        html = f"<pre>$ {command}\n{output}\n═══ Process exited with code {exit_code} ═══</pre>"
+        return HTMLResponse(html)
+    except Exception as e:
+        return HTMLResponse(f"<pre>Error: {e}</pre>")
 
 
 @app.get("/api/services")
@@ -170,7 +143,3 @@ async def api_services():
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
-
-
-async def _iter_text(text: str):
-    yield text
