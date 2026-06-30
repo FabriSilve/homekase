@@ -49,6 +49,9 @@ TS=${TS}
 BIND_ADDR=${BIND_ADDR}
 ASSISTANT_URL=${ASSISTANT_URL}"
 
+  # Remove stale SearXNG config so it regenerates with our env vars
+  docker volume rm assistant_searxng-data 2>/dev/null || true
+
   info "Building agent image (this may take a few minutes)..."
   docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build
 
@@ -95,6 +98,7 @@ remove_assistant() {
   local ASSISTANT_DIR="${HOMEKASE_REPO_DIR}/services/assistant"
   if [[ -f "${ASSISTANT_DIR}/docker-compose.yml" ]]; then
     docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" down --remove-orphans 2>/dev/null || true
+    docker volume rm assistant_searxng-data 2>/dev/null || true
   fi
 
   remove_service_dir "assistant"
