@@ -7,12 +7,12 @@ deploy_immich() {
   require_root
   header "Installing Immich"
 
-  local PORT DATA_PATH PHOTOS_PATH DB_PASS TS IMMICH_URL IMMICH_EXTERNAL_DOMAIN BIND_ADDR
+  local PORT DATA_PATH PHOTOS_PATH DB_PASSWORD TS IMMICH_URL IMMICH_EXTERNAL_DOMAIN BIND_ADDR
 
   PORT="$(port_wizard "immich" 1)"
   DATA_PATH="$(ask_input "Postgres data path" "/data/config/immich")"
   PHOTOS_PATH="$(ask_input "Photos upload path" "/storage/photos")"
-  DB_PASS="$(openssl rand -base64 16)"
+  DB_PASSWORD="$(openssl rand -base64 16)"
   TS="$(tailscale_serve_setup "${PORT}")"
   IMMICH_URL="$(service_url "${PORT}")"
   IMMICH_EXTERNAL_DOMAIN="${IMMICH_URL#https://}"
@@ -83,7 +83,7 @@ deploy_immich() {
     container_name: immich-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: \${DB_PASS}
+      POSTGRES_PASSWORD: \${DB_PASSWORD}
       POSTGRES_USER: immich
       POSTGRES_DB: immich
     volumes:
@@ -101,7 +101,7 @@ networks:
   write_env_file "immich" "PORT=${PORT}
 DATA_PATH=${DATA_PATH}
 PHOTOS_PATH=${PHOTOS_PATH}
-DB_PASS=${DB_PASS}
+DB_PASSWORD=${DB_PASSWORD}
 TS=${TS}
 DB_HOSTNAME=database
 DB_USERNAME=immich
