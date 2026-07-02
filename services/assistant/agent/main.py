@@ -33,8 +33,6 @@ def load_config() -> dict[str, Any]:
         config["model"] = model
     if url := os.environ.get("OLLAMA_URL"):
         config["ollama_url"] = url
-    if url := os.environ.get("FABRIC_URL"):
-        config["fabric_url"] = url
     if url := os.environ.get("SEARXNG_URL"):
         config["searxng_url"] = url
     return config

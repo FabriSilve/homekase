@@ -1,6 +1,5 @@
 model: qwen2.5:3b
 ollama_url: http://ollama:11434
-fabric_url: http://fabric:8080
 searxng_url: http://searxng:8888
 
 news_sources:
