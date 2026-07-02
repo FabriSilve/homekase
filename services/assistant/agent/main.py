@@ -35,6 +35,8 @@ def load_config() -> dict[str, Any]:
         config["ollama_url"] = url
     if url := os.environ.get("SEARXNG_URL"):
         config["searxng_url"] = url
+    if ctx := os.environ.get("OLLAMA_NUM_CTX"):
+        config["num_ctx"] = int(ctx)
     return config
 
 

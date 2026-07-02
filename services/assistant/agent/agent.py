@@ -39,7 +39,10 @@ async def _call_ollama(
         "model": config["model"],
         "messages": messages,
         "stream": False,
+        "options": {},
     }
+    if num_ctx := config.get("num_ctx"):
+        payload["options"]["num_ctx"] = num_ctx
     if tools_list:
         payload["tools"] = tools_list
 
