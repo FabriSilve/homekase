@@ -34,40 +34,6 @@ services:
     networks:
       - assistant-net
 
-  fabric:
-    build:
-      context: https://github.com/danielmiessler/Fabric.git
-      dockerfile: scripts/docker/Dockerfile
-    container_name: assistant-fabric
-    restart: unless-stopped
-    entrypoint: ["sh", "-c"]
-    environment:
-      - OLLAMA_URL=http://ollama:11434
-      - DEFAULT_MODEL=${OLLAMA_MODEL:-qwen2.5:3b}
-      - DEFAULT_VENDOR=Ollama
-      - FABRIC_PORT=8080
-    command:
-      - |
-        mkdir -p "$$HOME/.config/fabric"
-        cat > "$$HOME/.config/fabric/.env" <<EOF
-        OLLAMA_URL=$$OLLAMA_URL
-        DEFAULT_MODEL=$$DEFAULT_MODEL
-        DEFAULT_VENDOR=$$DEFAULT_VENDOR
-        FABRIC_PORT=$$FABRIC_PORT
-        EOF
-        exec fabric --serve --address 0.0.0.0:$$FABRIC_PORT
-    deploy:
-      resources:
-        limits:
-          memory: 128m
-          cpus: "0.5"
-        reservations:
-          memory: 32m
-    depends_on:
-      - ollama
-    networks:
-      - assistant-net
-
   agent:
     build: ./agent
     container_name: assistant-agent
@@ -77,7 +43,6 @@ services:
     environment:
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-}
-      - FABRIC_URL=http://fabric:8080
       - SEARXNG_URL=http://searxng:8888
     deploy:
       resources:
@@ -88,7 +53,6 @@ services:
           memory: 128m
     depends_on:
       - ollama
-      - fabric
       - searxng
     networks:
       - assistant-net
