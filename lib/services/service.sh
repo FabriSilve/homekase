@@ -159,6 +159,47 @@ cmd_logs() {
   docker compose -f "${compose_file}" ${env_file} logs "$@"
 }
 
+cmd_restart() {
+  local name="${1:-}"
+  if [[ -z "${name}" ]]; then
+    error "Usage: homekase restart <service>"
+    echo "Run 'homekase list' to see available services."
+    exit 1
+  fi
+  if ! config_app_installed "${name}" 2>/dev/null; then
+    error "Service ${name} is not installed"
+    exit 1
+  fi
+
+  require_root
+  header "Restarting ${name}"
+
+  local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
+  local deploy_dir="${HOMELAB_DIR}/${name}"
+
+  # Native systemd service
+  if systemctl is-active --quiet "homekase-${name}" 2>/dev/null; then
+    systemctl restart "homekase-${name}"
+    ok "${name} restarted."
+    return
+  fi
+
+  # Must have a compose file somewhere
+  if [[ ! -f "${deploy_dir}/docker-compose.yml" && ! -f "${repo_dir}/docker-compose.yml" ]]; then
+    error "No compose file found for ${name}"
+    exit 1
+  fi
+
+  local env_file=""
+  [[ -f "${deploy_dir}/.env" ]] && env_file="--env-file ${deploy_dir}/.env"
+  local compose_file="${deploy_dir}/docker-compose.yml"
+  [[ -f "${repo_dir}/docker-compose.yml" ]] && compose_file="${repo_dir}/docker-compose.yml"
+
+  docker compose -f "${compose_file}" ${env_file} up -d
+
+  ok "${name} restarted."
+}
+
 cmd_update_service() {
   local name="${1:-}"
   if [[ -z "${name}" ]]; then
