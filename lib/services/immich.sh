@@ -10,7 +10,7 @@ deploy_immich() {
   local PORT DATA_PATH PHOTOS_PATH DB_PASSWORD TS IMMICH_URL IMMICH_EXTERNAL_DOMAIN BIND_ADDR
 
   PORT="$(port_wizard "immich" 1)"
-  DATA_PATH="$(ask_input "Postgres data path" "/data/config/immich")"
+  DATA_PATH="$(ask_input "Postgres data path" "/data/immich")"
   PHOTOS_PATH="$(ask_input "Photos upload path" "/storage/photos")"
   DB_PASSWORD="$(openssl rand -base64 16)"
   TS="$(tailscale_serve_setup "${PORT}")"
@@ -28,8 +28,10 @@ deploy_immich() {
     restart: unless-stopped
     command: [\"start.sh\", \"immich\"]
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_started
+      database:
+        condition: service_healthy
     ports:
       - \"\${BIND_ADDR}\${PORT}:3001\"
     volumes:
@@ -52,8 +54,10 @@ deploy_immich() {
     restart: unless-stopped
     command: [\"start.sh\", \"microservices\"]
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_started
+      database:
+        condition: service_healthy
     volumes:
       - \${PHOTOS_PATH}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -90,6 +94,12 @@ deploy_immich() {
     volumes:
       - \${DATA_PATH}:/var/lib/postgresql/data
     shm_size: 128mb
+    healthcheck:
+      test: [\"CMD-SHELL\", \"pg_isready\"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - homelab-net
 
@@ -154,8 +164,10 @@ _update_immich() {
     restart: unless-stopped
     command: [\"start.sh\", \"immich\"]
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_started
+      database:
+        condition: service_healthy
     ports:
       - \"\${BIND_ADDR}\${PORT}:3001\"
     volumes:
@@ -178,8 +190,10 @@ _update_immich() {
     restart: unless-stopped
     command: [\"start.sh\", \"microservices\"]
     depends_on:
-      - redis
-      - database
+      redis:
+        condition: service_started
+      database:
+        condition: service_healthy
     volumes:
       - \${PHOTOS_PATH}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -216,6 +230,12 @@ _update_immich() {
     volumes:
       - \${DATA_PATH}:/var/lib/postgresql/data
     shm_size: 128mb
+    healthcheck:
+      test: [\"CMD-SHELL\", \"pg_isready\"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - homelab-net
 
