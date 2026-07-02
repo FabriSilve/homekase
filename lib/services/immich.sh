@@ -33,7 +33,7 @@ deploy_immich() {
       database:
         condition: service_healthy
     ports:
-      - \"\${BIND_ADDR}\${PORT}:3001\"
+      - \"\${BIND_ADDR}\${PORT}:2283\"
     volumes:
       - \${PHOTOS_PATH}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -119,7 +119,7 @@ DB_HOSTNAME=database
 DB_USERNAME=immich
 DB_DATABASE_NAME=immich
 REDIS_HOSTNAME=redis
-IMMICH_SERVER_URL=http://immich-server:3001
+IMMICH_SERVER_URL=http://immich-server:2283
 IMMICH__SERVER__EXTERNAL_DOMAIN=${IMMICH_EXTERNAL_DOMAIN}
 IMMICH_URL=${IMMICH_URL}
 BIND_ADDR=${BIND_ADDR}"
@@ -169,7 +169,7 @@ _update_immich() {
       database:
         condition: service_healthy
     ports:
-      - \"\${BIND_ADDR}\${PORT}:3001\"
+      - \"\${BIND_ADDR}\${PORT}:2283\"
     volumes:
       - \${PHOTOS_PATH}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
@@ -255,7 +255,7 @@ DB_HOSTNAME=database
 DB_USERNAME=immich
 DB_DATABASE_NAME=immich
 REDIS_HOSTNAME=redis
-IMMICH_SERVER_URL=http://immich-server:3001
+IMMICH_SERVER_URL=http://immich-server:2283
 IMMICH__SERVER__EXTERNAL_DOMAIN=${IMMICH_EXTERNAL_DOMAIN}
 IMMICH_URL=${IMMICH_URL}
 BIND_ADDR=${BIND_ADDR}"
