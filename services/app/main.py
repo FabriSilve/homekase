@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader
 
-app = FastAPI(title="Homekase App")
+app = FastAPI(title="Homekase")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

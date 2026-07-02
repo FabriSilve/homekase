@@ -74,7 +74,7 @@ HOMEKASE_CONFIG=/etc/homekase/homekase.yml"
   info "Creating systemd service..."
   cat > "${SERVICE_FILE}" <<EOF
 [Unit]
-Description=Homekase App Dashboard
+Description=Homekase Dashboard
 After=network.target docker.service
 Wants=docker.service
 
