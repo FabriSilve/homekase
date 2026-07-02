@@ -79,15 +79,17 @@ deploy_immich() {
       - homelab-net
 
   database:
-    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
     container_name: immich-postgres
     restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: \${DB_PASSWORD}
-      POSTGRES_USER: immich
-      POSTGRES_DB: immich
+      POSTGRES_USER: \${DB_USERNAME}
+      POSTGRES_DB: \${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
     volumes:
       - \${DATA_PATH}:/var/lib/postgresql/data
+    shm_size: 128mb
     networks:
       - homelab-net
 
