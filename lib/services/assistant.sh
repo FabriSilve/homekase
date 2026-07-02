@@ -72,6 +72,23 @@ ASSISTANT_URL=${ASSISTANT_URL}"
   docker exec assistant-ollama ollama pull "${model}" 2>/dev/null || \
     docker exec ollama ollama pull "${model}"
 
+  info "Detecting model context window..."
+  local NUM_CTX
+  NUM_CTX=$(docker exec assistant-ollama ollama show "${model}" 2>/dev/null | grep "context length" | awk '{print $3}' || echo "")
+  if [[ -z "${NUM_CTX}" ]]; then
+    case "${model}" in
+      qwen2.5:*)    NUM_CTX=32768 ;;
+      llama3.2:*)   NUM_CTX=131072 ;;
+      llama3.1:*)   NUM_CTX=131072 ;;
+      llama3:*)     NUM_CTX=8192 ;;
+      mistral:*)    NUM_CTX=32768 ;;
+      deepseek*)    NUM_CTX=16384 ;;
+      *)            NUM_CTX=8192 ;;
+    esac
+  fi
+  info "Context window: ${NUM_CTX} tokens"
+  echo "OLLAMA_NUM_CTX=${NUM_CTX}" >> "${DEPLOY_DIR}/.env"
+
   config_app_set assistant installed true
   config_app_set assistant port      "${PORT}"
   config_app_set assistant tailscale "${TS}"
@@ -111,6 +128,7 @@ EOF
 
   write_env_file "assistant" "PORT=${PORT}
 OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
+OLLAMA_NUM_CTX=${OLLAMA_NUM_CTX:-32768}
 OLLAMA_MEM_LIMIT=${OLLAMA_MEM_LIMIT:-12g}
 OLLAMA_CPU_LIMIT=${OLLAMA_CPU_LIMIT:-4}
 OLLAMA_MEM_RESERVATION=${OLLAMA_MEM_RESERVATION:-4g}
