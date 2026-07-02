@@ -93,7 +93,7 @@ async def process_chat(
 
             messages.append({
                 "role": "tool",
-                "content": json.dumps(tool_result.get("text_data", tool_result)),
+                "content": str(tool_result.get("text_data", json.dumps(tool_result))),
             })
 
         response_data = await _call_ollama(messages, config)
