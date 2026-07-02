@@ -70,9 +70,23 @@ EOF
     lazydocker --version
   else
     info "Installing lazydocker..."
-    curl -sSL https://github.com/jesseduffield/lazydocker/releases/latest/download/lazydocker_$(uname -s)_$(uname -m).tar.gz \
-      | tar -C /tmp -xz
-    install /tmp/lazydocker /usr/local/bin/lazydocker
+    local lazy_arch lazy_tag lazy_file lazy_url
+    lazy_arch="$(uname -m)"
+    case "${lazy_arch}" in
+      i386|i686) lazy_arch=x86 ;;
+      armv6*)    lazy_arch=armv6 ;;
+      armv7*)    lazy_arch=armv7 ;;
+      aarch64*)  lazy_arch=arm64 ;;
+    esac
+    lazy_tag="$(curl -sL -H 'Accept: application/json' \
+      https://github.com/jesseduffield/lazydocker/releases/latest \
+      | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')"
+    lazy_file="lazydocker_${lazy_tag//v/}_$(uname -s)_${lazy_arch}.tar.gz"
+    lazy_url="https://github.com/jesseduffield/lazydocker/releases/download/${lazy_tag}/${lazy_file}"
+    curl -sL -o /tmp/lazydocker.tar.gz "${lazy_url}"
+    tar -xzf /tmp/lazydocker.tar.gz -C /tmp lazydocker
+    install -Dm 755 /tmp/lazydocker /usr/local/bin/lazydocker
+    rm -f /tmp/lazydocker /tmp/lazydocker.tar.gz
     ok "lazydocker installed."
   fi
 }
