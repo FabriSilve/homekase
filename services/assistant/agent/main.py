@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 import tools  # noqa: F401
-from agent import process_chat
+from agent import process_chat, process_chat_stream
 
 logger = logging.getLogger(__name__)
 
@@ -87,15 +87,20 @@ async def _stream_chat(request: ChatRequest) -> AsyncGenerator[str]:
 
     yield _sse_chunk("", None)
 
-    response_text = ""
+    had_content = False
     try:
-        response_text = await process_chat(user_text, config, prior_messages=prior or None)
+        async for token in process_chat_stream(user_text, config, prior_messages=prior or None):
+            had_content = True
+            yield _sse_chunk(token, None)
     except Exception as e:
         logger.exception("Chat processing failed")
-        response_text = f"Error: {e}"
+        yield _sse_chunk(f"Error: {e}", None)
+        yield _sse_chunk("", "stop")
+        yield "data: [DONE]\n\n"
+        return
 
-    if response_text:
-        yield _sse_chunk(response_text, None)
+    if not had_content:
+        yield _sse_chunk("I couldn't generate a response.", None)
 
     yield _sse_chunk("", "stop")
     yield "data: [DONE]\n\n"
