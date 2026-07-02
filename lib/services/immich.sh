@@ -128,10 +128,33 @@ BIND_ADDR=${BIND_ADDR}"
 remove_immich() {
   require_root
   header "Removing Immich"
-  local port
+
+  local port data_path storage_path
   port="$(config_app_get immich port 2>/dev/null || true)"
+  data_path="$(config_app_get immich data_path 2>/dev/null || true)"
+  storage_path="$(config_app_get immich storage_path 2>/dev/null || true)"
+
   [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
   remove_service_dir "immich"
+
+  if [[ -n "${data_path}" && -d "${data_path}" ]]; then
+    if ask_confirm "Also delete PostgreSQL data at ${data_path}?"; then
+      rm -rf "${data_path}"
+      ok "Removed ${data_path}"
+    else
+      info "Database data kept at ${data_path}"
+    fi
+  fi
+
+  if [[ -n "${storage_path}" && -d "${storage_path}" ]]; then
+    if ask_confirm "Also delete photos at ${storage_path}?"; then
+      rm -rf "${storage_path}"
+      ok "Removed ${storage_path}"
+    else
+      info "Photos kept at ${storage_path}"
+    fi
+  fi
+
   config_app_remove immich
   ok "Immich removed."
 }
