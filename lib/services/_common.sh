@@ -130,6 +130,10 @@ start_service() {
 # Stops a service via Docker Compose.
 stop_service() {
   local name="$1"
+  local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
+  if [[ -f "${repo_dir}/docker-compose.yml" ]]; then
+    docker compose -f "${repo_dir}/docker-compose.yml" down 2>/dev/null || true
+  fi
   docker compose -f "${HOMELAB_DIR}/${name}/docker-compose.yml" down 2>/dev/null || true
 }
 

@@ -188,27 +188,33 @@ cmd_update_service() {
     fi
   fi
 
-  local compose_file=""
-  local env_file=""
-
-  if [[ -f "${repo_dir}/docker-compose.yml" ]]; then
-    compose_file="${repo_dir}/docker-compose.yml"
-    [[ -f "${deploy_dir}/.env" ]] && env_file="--env-file ${deploy_dir}/.env"
-  elif [[ -f "${deploy_dir}/docker-compose.yml" ]]; then
-    compose_file="${deploy_dir}/docker-compose.yml"
-  else
+  # Must have a compose file somewhere
+  if [[ ! -f "${deploy_dir}/docker-compose.yml" && ! -f "${repo_dir}/docker-compose.yml" ]]; then
     error "No compose file found for ${name}"
     exit 1
   fi
 
-  if [[ -d "${repo_dir}" ]]; then
-    info "Rebuilding local images..."
-    docker compose -f "${compose_file}" ${env_file} build
+  # Regenerate config files from the latest service template
+  source "${HOMEKASE_DIR}/lib/services/${name}.sh"
+
+  stop_service "${name}"
+
+  local update_func="_update_${name}"
+  if declare -F "${update_func}" &>/dev/null; then
+    "${update_func}"
   else
-    info "Pulling latest images..."
-    docker compose -f "${compose_file}" ${env_file} pull
+    info "No update logic defined for ${name}, reusing existing config."
   fi
 
-  docker compose -f "${compose_file}" ${env_file} up -d
+  # Restart — no explicit pull; Docker pulls missing images on demand
+  local env_file=""
+  [[ -f "${deploy_dir}/.env" ]] && env_file="--env-file ${deploy_dir}/.env"
+
+  if [[ -f "${repo_dir}/docker-compose.yml" ]]; then
+    docker compose -f "${repo_dir}/docker-compose.yml" ${env_file} up -d
+  else
+    docker compose -f "${deploy_dir}/docker-compose.yml" ${env_file} up -d
+  fi
+
   ok "${name} updated."
 }

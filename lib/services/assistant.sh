@@ -81,6 +81,48 @@ ASSISTANT_URL=${ASSISTANT_URL}"
   info "Open WebUI: ${ASSISTANT_URL}"
 }
 
+_update_assistant() {
+  local PORT TS BIND_ADDR ASSISTANT_URL SEARXNG_KEY
+  local ASSISTANT_DIR="${HOMEKASE_REPO_DIR}/services/assistant"
+  local DEPLOY_DIR="${HOMELAB_DIR}/assistant"
+
+  PORT="$(config_app_get assistant port)"
+  TS="$(config_app_get assistant tailscale)"
+  BIND_ADDR="$(bind_address "${TS}")"
+  ASSISTANT_URL="$(service_url "${PORT}")"
+
+  if [[ -f "${DEPLOY_DIR}/.env" ]]; then
+    source "${DEPLOY_DIR}/.env"
+  fi
+  SEARXNG_KEY="${SEARXNG_KEY:-$(openssl rand -hex 32 2>/dev/null || echo 'changeme')}"
+
+  mkdir -p "${DEPLOY_DIR}"
+
+  cat > "${DEPLOY_DIR}/searxng-settings.yml" <<EOF
+use_default_settings: true
+server:
+  secret_key: "${SEARXNG_KEY}"
+  bind_address: "0.0.0.0"
+search:
+  formats:
+    - html
+    - json
+EOF
+
+  write_env_file "assistant" "PORT=${PORT}
+OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
+OLLAMA_MEM_LIMIT=${OLLAMA_MEM_LIMIT:-12g}
+OLLAMA_CPU_LIMIT=${OLLAMA_CPU_LIMIT:-4}
+OLLAMA_MEM_RESERVATION=${OLLAMA_MEM_RESERVATION:-4g}
+SEARXNG_SETTINGS=${DEPLOY_DIR}/searxng-settings.yml
+TS=${TS}
+BIND_ADDR=${BIND_ADDR}
+ASSISTANT_URL=${ASSISTANT_URL}"
+
+  info "Rebuilding agent image..."
+  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build
+}
+
 remove_assistant() {
   require_root
   header "Removing Local AI Assistant"

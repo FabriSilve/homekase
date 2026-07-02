@@ -127,6 +127,122 @@ BIND_ADDR=${BIND_ADDR}"
   ok "Immich running on port ${PORT}  →  ${IMMICH_URL}"
 }
 
+_update_immich() {
+  local PORT DATA_PATH PHOTOS_PATH DB_PASSWORD TS IMMICH_URL IMMICH_EXTERNAL_DOMAIN BIND_ADDR
+
+  PORT="$(config_app_get immich port)"
+  DATA_PATH="$(config_app_get immich data_path)"
+  PHOTOS_PATH="$(config_app_get immich storage_path)"
+  TS="$(config_app_get immich tailscale)"
+
+  if [[ -f "${HOMELAB_DIR}/immich/.env" ]]; then
+    source "${HOMELAB_DIR}/immich/.env"
+  fi
+  DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -base64 16)}"
+
+  IMMICH_URL="$(service_url "${PORT}")"
+  IMMICH_EXTERNAL_DOMAIN="${IMMICH_URL#https://}"
+  IMMICH_EXTERNAL_DOMAIN="${IMMICH_EXTERNAL_DOMAIN#http://}"
+  BIND_ADDR="$(bind_address "${TS}")"
+
+  write_service_dir "immich"
+
+  write_compose_file "immich" "services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:release
+    container_name: immich-server
+    restart: unless-stopped
+    command: [\"start.sh\", \"immich\"]
+    depends_on:
+      - redis
+      - database
+    ports:
+      - \"\${BIND_ADDR}\${PORT}:3001\"
+    volumes:
+      - \${PHOTOS_PATH}:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    env_file: .env
+    networks:
+      - homelab-net
+    labels:
+      com.homekase.service: immich
+      com.homekase.port: \"\${PORT}\"
+      com.homekase.tailscale: \"\${TS}\"
+      com.homekase.backup.type: snapshot
+      com.homekase.backup.data: \"\${PHOTOS_PATH}\"
+      com.homekase.backup.db-type: postgres
+
+  immich-microservices:
+    image: ghcr.io/immich-app/immich-server:release
+    container_name: immich-microservices
+    restart: unless-stopped
+    command: [\"start.sh\", \"microservices\"]
+    depends_on:
+      - redis
+      - database
+    volumes:
+      - \${PHOTOS_PATH}:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    env_file: .env
+    networks:
+      - homelab-net
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:release
+    container_name: immich-machine-learning
+    restart: unless-stopped
+    volumes:
+      - immich-model-cache:/cache
+    env_file: .env
+    networks:
+      - homelab-net
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: immich-redis
+    restart: unless-stopped
+    networks:
+      - homelab-net
+
+  database:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    container_name: immich-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: \${DB_PASSWORD}
+      POSTGRES_USER: \${DB_USERNAME}
+      POSTGRES_DB: \${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - \${DATA_PATH}:/var/lib/postgresql/data
+    shm_size: 128mb
+    networks:
+      - homelab-net
+
+volumes:
+  immich-model-cache:
+
+networks:
+  homelab-net:
+    external: true"
+
+  write_env_file "immich" "PORT=${PORT}
+DATA_PATH=${DATA_PATH}
+PHOTOS_PATH=${PHOTOS_PATH}
+DB_PASSWORD=${DB_PASSWORD}
+TS=${TS}
+DB_HOSTNAME=database
+DB_USERNAME=immich
+DB_DATABASE_NAME=immich
+REDIS_HOSTNAME=redis
+IMMICH_SERVER_URL=http://immich-server:3001
+IMMICH__SERVER__EXTERNAL_DOMAIN=${IMMICH_EXTERNAL_DOMAIN}
+IMMICH_URL=${IMMICH_URL}
+BIND_ADDR=${BIND_ADDR}"
+
+  mkdir -p "${DATA_PATH}" "${PHOTOS_PATH}"
+}
+
 remove_immich() {
   require_root
   header "Removing Immich"

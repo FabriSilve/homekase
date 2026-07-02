@@ -63,6 +63,55 @@ BIND_ADDR=${BIND_ADDR}"
   ok "Vikunja running on port ${PORT}  →  ${VIKUNJA_URL}"
 }
 
+_update_vikunja() {
+  local PORT DATA_PATH TS VIKUNJA_URL BIND_ADDR
+
+  PORT="$(config_app_get vikunja port)"
+  DATA_PATH="$(config_app_get vikunja data_path)"
+  TS="$(config_app_get vikunja tailscale)"
+  BIND_ADDR="$(bind_address "${TS}")"
+  VIKUNJA_URL="$(service_url "${PORT}")"
+
+  write_service_dir "vikunja"
+
+  write_compose_file "vikunja" "services:
+  vikunja:
+    image: vikunja/vikunja:latest
+    container_name: vikunja
+    restart: unless-stopped
+    ports:
+      - \"\${BIND_ADDR}\${PORT}:3456\"
+    volumes:
+      - \${DATA_PATH}:/app/vikunja/files
+    environment:
+      VIKUNJA_DATABASE_TYPE: sqlite
+      VIKUNJA_DATABASE_PATH: /app/vikunja/files/vikunja.db
+      VIKUNJA_SERVICE_FRONTENDURL: \${VIKUNJA_URL}
+      VIKUNJA_SERVICE_PUBLICURL: \${VIKUNJA_URL}
+    networks:
+      - homelab-net
+    labels:
+      com.homekase.service: vikunja
+      com.homekase.port: \"\${PORT}\"
+      com.homekase.tailscale: \"\${TS}\"
+      com.homekase.backup.type: snapshot
+      com.homekase.backup.data: \"\${DATA_PATH}\"
+      com.homekase.backup.db-type: sqlite
+
+networks:
+  homelab-net:
+    external: true"
+
+  write_env_file "vikunja" "PORT=${PORT}
+DATA_PATH=${DATA_PATH}
+TS=${TS}
+VIKUNJA_URL=${VIKUNJA_URL}
+BIND_ADDR=${BIND_ADDR}"
+
+  mkdir -p "${DATA_PATH}"
+  chown -R 1000:0 "${DATA_PATH}" 2>/dev/null || true
+}
+
 remove_vikunja() {
   require_root
   header "Removing Vikunja"
