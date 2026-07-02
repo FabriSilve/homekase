@@ -15,8 +15,8 @@ SERVICES=(
   "qbittorrent:Torrent client with optional VPN"
   "filebrowser:Web file manager for family sharing"
   "vikunja:Task management and calendar"
-  "assistant:AI assistant with chat, tools, and web search"
-  "app:Server dashboard with service list, actions, terminal"
+  "assistant:AI assistant with chat"
+  "app:Server companion app"
 )
 
 _service_description() {
