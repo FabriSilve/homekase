@@ -40,8 +40,8 @@ _service_known() {
 
 cmd_list() {
   header "Available services"
-  printf "%-18s %-42s %-12s %-8s %s\n" "NAME" "DESCRIPTION" "STATUS" "PORT" "URL"
-  printf '%0.s─' {1..90}; echo
+  printf "%-18s %-42s %-12s %s\n" "NAME" "DESCRIPTION" "STATUS" "URL"
+  printf '%0.s─' {1..80}; echo
 
   local entry sname sdesc status port url ts_host ts_flag
   ts_host="$(config_get 'tailscale.hostname' 2>/dev/null || echo '')"
@@ -63,12 +63,11 @@ cmd_list() {
       fi
     else
       status="not installed"
-      port="-"
       url="-"
     fi
 
-    printf "%-18s %-42s %-20s %-8s %s\n" \
-      "${sname}" "${sdesc}" "${status}" "${port}" "${url}"
+    printf "%-18s %-42s %-20s %s\n" \
+      "${sname}" "${sdesc}" "${status}" "${url}"
   done
   echo
 }
