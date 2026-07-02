@@ -141,85 +141,73 @@ async def dashboard(request: Request):
         tailscale=ts,
         installed_apps=list(apps.keys()),
         dashboard_password=bool(DASHBOARD_PASSWORD),
+        session_valid=_check_session(request),
     )
     return HTMLResponse(html)
 
 
-_DASHBOARD_LOCKED = """\
-<div id="dashboard-content" style="text-align:center;padding:3rem 1rem;">
-  <p style="color:var(--text-muted);margin-bottom:1rem;">🔒 Enter password to access Quick Actions and Terminal</p>
-  <form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;justify-content:center;">
-    <input type="password" name="password" class="terminal-input"
-           placeholder="Dashboard password" style="max-width:240px;">
-    <button class="btn" type="submit">Unlock</button>
-  </form>
-</div>"""
-
-_DASHBOARD_UNLOCKED = """\
+_SHORTCUTS = """\
 <div class="section-title">Quick Actions</div>
 <div class="actions">
   <button class="btn"
           hx-post="/api/exec"
           hx-vals='{"command": "uptime"}'
-          hx-target="#terminal"
+          hx-target="#output"
           hx-swap="innerHTML">
     ⚡ Uptime
   </button>
   <button class="btn"
           hx-post="/api/exec"
           hx-vals='{"command": "df -h /"}'
-          hx-target="#terminal"
+          hx-target="#output"
           hx-swap="innerHTML">
     💾 Disk
   </button>
   <button class="btn"
           hx-post="/api/exec"
           hx-vals='{"command": "free -h"}'
-          hx-target="#terminal"
+          hx-target="#output"
           hx-swap="innerHTML">
     🧠 Memory
   </button>
   <button class="btn"
           hx-post="/api/exec"
           hx-vals='{"command": "docker ps"}'
-          hx-target="#terminal"
+          hx-target="#output"
           hx-swap="innerHTML">
     🐳 Docker
   </button>
   <button class="btn btn-danger"
           hx-post="/api/exec"
           hx-vals='{"command": "sudo shutdown -h now"}'
-          hx-target="#terminal"
+          hx-target="#output"
           hx-swap="innerHTML">
     ⏻ Shutdown
   </button>
   <button class="btn btn-danger"
           hx-post="/api/exec"
           hx-vals='{"command": "sudo reboot"}'
-          hx-target="#terminal"
+          hx-target="#output"
           hx-swap="innerHTML">
     🔄 Reboot
   </button>
 </div>
-<div class="section-title">Terminal</div>
-<div class="terminal" id="terminal">
-  Type a command below and press Enter.
-</div>
-<form class="terminal-input-row"
-      hx-post="/api/exec"
-      hx-target="#terminal"
-      hx-swap="innerHTML"
-      hx-on::after-request="this.reset()">
-  <input type="text" class="terminal-input" name="command"
-         placeholder="$ enter command..." autofocus>
-</form>"""
+<div class="section-title">Output</div>
+<div class="output" id="output">
+  Click a button to run a command.
+</div>"""
 
 
-@app.get("/api/section/dashboard", response_class=HTMLResponse)
-async def section_dashboard(request: Request):
-    if _check_session(request):
-        return HTMLResponse(_DASHBOARD_UNLOCKED)
-    return HTMLResponse(_DASHBOARD_LOCKED)
+@app.get("/api/lock-form", response_class=HTMLResponse)
+async def lock_form():
+    return HTMLResponse(
+        '<div class="unlock-form" id="lock-section">'
+        '<input type="password" name="password" class="terminal-input" '
+        'placeholder="Dashboard password" style="max-width:240px;">'
+        '<button class="btn" type="submit" '
+        'hx-post="/api/unlock" hx-target="#actions-section" hx-swap="outerHTML">'
+        "Unlock</button></div>"
+    )
 
 
 @app.post("/api/unlock", response_class=HTMLResponse)
@@ -228,16 +216,16 @@ async def unlock(request: Request):
     password = data.get("password", "")
     if password != DASHBOARD_PASSWORD:
         return HTMLResponse(
-            '<div id="dashboard-content" style="text-align:center;padding:3rem 1rem;">'
-            '<p style="color:var(--accent-red);margin-bottom:1rem;">🔒 Wrong password</p>'
-            '<form hx-post="/api/unlock" hx-swap="outerHTML" style="display:flex;gap:0.5rem;justify-content:center;">'
+            '<div class="unlock-form" id="lock-section">'
+            '<p style="color:var(--accent-red);margin-bottom:0.5rem;">Wrong password</p>'
             '<input type="password" name="password" class="terminal-input" '
             'placeholder="Dashboard password" style="max-width:240px;">'
-            '<button class="btn" type="submit">Unlock</button>'
-            "</form></div>"
+            '<button class="btn" type="submit" '
+            'hx-post="/api/unlock" hx-target="#actions-section" hx-swap="outerHTML">'
+            "Unlock</button></div>"
         )
     token = _make_session_token()
-    resp = HTMLResponse("<script>location.reload()</script>")
+    resp = HTMLResponse(_SHORTCUTS)
     resp.set_cookie(
         "homekase_session", token,
         httponly=True, samesite="lax", max_age=86400,

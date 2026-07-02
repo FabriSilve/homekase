@@ -154,27 +154,18 @@
       border-color: var(--accent-red);
     }
 
-    .terminal {
+    .output {
       background: #000;
       border: 1px solid rgba(0, 240, 255, 0.2);
       border-radius: 0.5rem;
       padding: 1rem;
       font-size: 0.75rem;
       line-height: 1.5;
-      min-height: 200px;
-      max-height: 400px;
       overflow-y: auto;
       white-space: pre-wrap;
     }
 
-    .terminal-input-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
     .terminal-input {
-      flex: 1;
       background: #000;
       border: 1px solid rgba(0, 240, 255, 0.2);
       border-radius: 0.375rem;
@@ -187,6 +178,32 @@
 
     .terminal-input:focus {
       border-color: var(--accent-cyan);
+    }
+
+    .lock-section {
+      text-align: center;
+      padding: 4rem 1rem;
+    }
+
+    .lock-btn {
+      background: none;
+      border: none;
+      font-size: 4rem;
+      cursor: pointer;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+
+    .lock-btn:hover {
+      opacity: 1;
+    }
+
+    .unlock-form {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
     .section-title {
@@ -231,70 +248,64 @@
     {% endfor %}
   </div>
 
-  {% if dashboard_password %}
-  <div id="dashboard-content"
-       hx-get="/api/section/dashboard"
-       hx-trigger="load"
-       hx-swap="innerHTML"></div>
+  {% if dashboard_password and not session_valid %}
+  <div class="lock-section" id="actions-section">
+    <button class="lock-btn" id="lock-btn"
+            hx-get="/api/lock-form" hx-target="#actions-section" hx-swap="innerHTML">
+      🔒
+    </button>
+  </div>
   {% else %}
-  <div id="dashboard-content">
+  <div id="actions-section">
     <div class="section-title">Quick Actions</div>
     <div class="actions">
       <button class="btn"
               hx-post="/api/exec"
               hx-vals='{"command": "uptime"}'
-              hx-target="#terminal"
+              hx-target="#output"
               hx-swap="innerHTML">
         ⚡ Uptime
       </button>
       <button class="btn"
               hx-post="/api/exec"
               hx-vals='{"command": "df -h /"}'
-              hx-target="#terminal"
+              hx-target="#output"
               hx-swap="innerHTML">
         💾 Disk
       </button>
       <button class="btn"
               hx-post="/api/exec"
               hx-vals='{"command": "free -h"}'
-              hx-target="#terminal"
+              hx-target="#output"
               hx-swap="innerHTML">
         🧠 Memory
       </button>
       <button class="btn"
               hx-post="/api/exec"
               hx-vals='{"command": "docker ps"}'
-              hx-target="#terminal"
+              hx-target="#output"
               hx-swap="innerHTML">
         🐳 Docker
       </button>
       <button class="btn btn-danger"
               hx-post="/api/exec"
               hx-vals='{"command": "sudo shutdown -h now"}'
-              hx-target="#terminal"
+              hx-target="#output"
               hx-swap="innerHTML">
         ⏻ Shutdown
       </button>
       <button class="btn btn-danger"
               hx-post="/api/exec"
               hx-vals='{"command": "sudo reboot"}'
-              hx-target="#terminal"
+              hx-target="#output"
               hx-swap="innerHTML">
         🔄 Reboot
       </button>
     </div>
-    <div class="section-title">Terminal</div>
-    <div class="terminal" id="terminal">
-      Type a command below and press Enter.
+    <div class="section-title">Output</div>
+    <div class="output" id="output">
+      Click a button to run a command.
     </div>
-    <form class="terminal-input-row"
-          hx-post="/api/exec"
-          hx-target="#terminal"
-          hx-swap="innerHTML"
-          hx-on::after-request="this.reset()">
-      <input type="text" class="terminal-input" name="command"
-             placeholder="$ enter command..." autofocus>
-    </form>
   </div>
   {% endif %}
   <div class="footer">
