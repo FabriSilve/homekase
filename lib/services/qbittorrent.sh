@@ -119,7 +119,23 @@ WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${TORRENTS_PATH}"
-  mkdir -p "${CONFIG_PATH}"
+  mkdir -p "${CONFIG_PATH}/qBittorrent"
+  cat > "${CONFIG_PATH}/qBittorrent/qBittorrent.conf" <<- CONF
+[AutoRun]
+enabled=false
+program=
+
+[LegalNotice]
+Accepted=true
+
+[Network]
+Proxy\HostnameLookupEnabled=false
+
+[Preferences]
+WebUI\AuthSubnetWhitelist=100.64.0.0/10
+WebUI\AuthSubnetWhitelistEnabled=true
+WebUI\ServerDomains=*
+CONF
 
   start_service "qbittorrent"
 
@@ -240,7 +256,23 @@ WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${TORRENTS_PATH}"
-  mkdir -p "${CONFIG_PATH}"
+  mkdir -p "${CONFIG_PATH}/qBittorrent"
+  cat > "${CONFIG_PATH}/qBittorrent/qBittorrent.conf" <<- CONF
+[AutoRun]
+enabled=false
+program=
+
+[LegalNotice]
+Accepted=true
+
+[Network]
+Proxy\HostnameLookupEnabled=false
+
+[Preferences]
+WebUI\AuthSubnetWhitelist=100.64.0.0/10
+WebUI\AuthSubnetWhitelistEnabled=true
+WebUI\ServerDomains=*
+CONF
 }
 
 remove_qbittorrent() {
