@@ -6,11 +6,13 @@ deploy_qbittorrent() {
   require_root
   header "Installing qBittorrent"
 
-  local PORT TORRENTS_PATH USE_VPN TS BIND_ADDR
+  local PORT TORRENTS_PATH CONFIG_PATH WEBUI_PASSWORD USE_VPN TS BIND_ADDR
   local WG_PRIVATE_KEY WG_SERVER WG_SERVER_PUBKEY
 
   PORT="$(port_wizard "qbittorrent" 1)"
   TORRENTS_PATH="$(ask_input "Torrents storage path" "/storage/torrents")"
+  CONFIG_PATH="$(ask_input "Config path for qbittorrent" "/data/qbittorrent")"
+  WEBUI_PASSWORD="$(ask_input "WebUI password for qbittorrent" "")"
   TS="$(tailscale_serve_setup "${PORT}")"
   BIND_ADDR="$(bind_address "${TS}")"
 
@@ -61,7 +63,9 @@ deploy_qbittorrent() {
       PUID: 1000
       PGID: 1000
       WEBUI_PORT: 8080
+      WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     volumes:
+      - \${CONFIG_PATH}:/config
       - \${TORRENTS_PATH}:/downloads
     labels:
       com.homekase.service: qbittorrent
@@ -83,9 +87,11 @@ networks:
       PUID: 1000
       PGID: 1000
       WEBUI_PORT: 8080
+      WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     ports:
       - \"\${BIND_ADDR}\${PORT}:8080\"
     volumes:
+      - \${CONFIG_PATH}:/config
       - \${TORRENTS_PATH}:/downloads
     networks:
       - homelab-net
@@ -103,6 +109,8 @@ networks:
 
   write_env_file "qbittorrent" "PORT=${PORT}
 TORRENTS_PATH=${TORRENTS_PATH}
+CONFIG_PATH=${CONFIG_PATH}
+WEBUI_PASSWORD=${WEBUI_PASSWORD}
 TS=${TS}
 USE_VPN=${USE_VPN}
 WG_PRIVATE_KEY=${WG_PRIVATE_KEY}
@@ -111,23 +119,26 @@ WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${TORRENTS_PATH}"
+  mkdir -p "${CONFIG_PATH}"
 
   start_service "qbittorrent"
 
   config_app_set qbittorrent installed    true
   config_app_set qbittorrent port         "${PORT}"
   config_app_set qbittorrent storage_path "${TORRENTS_PATH}"
+  config_app_set qbittorrent config_path  "${CONFIG_PATH}"
   config_app_set qbittorrent tailscale    "${TS}"
 
   ok "qBittorrent running on port ${PORT}  →  $(service_url "${PORT}")"
 }
 
 _update_qbittorrent() {
-  local PORT TORRENTS_PATH USE_VPN TS BIND_ADDR
+  local PORT TORRENTS_PATH CONFIG_PATH WEBUI_PASSWORD USE_VPN TS BIND_ADDR
   local WG_PRIVATE_KEY WG_SERVER WG_SERVER_PUBKEY
 
   PORT="$(config_app_get qbittorrent port)"
   TORRENTS_PATH="$(config_app_get qbittorrent storage_path)"
+  CONFIG_PATH="$(config_app_get qbittorrent config_path)"
   TS="$(config_app_get qbittorrent tailscale)"
   BIND_ADDR="$(bind_address "${TS}")"
 
@@ -135,6 +146,8 @@ _update_qbittorrent() {
     source "${HOMELAB_DIR}/qbittorrent/.env"
   fi
   USE_VPN="${USE_VPN:-false}"
+  CONFIG_PATH="${CONFIG_PATH:-/data/qbittorrent}"
+  WEBUI_PASSWORD="${WEBUI_PASSWORD:-}"
 
   write_service_dir "qbittorrent"
 
@@ -171,7 +184,9 @@ _update_qbittorrent() {
       PUID: 1000
       PGID: 1000
       WEBUI_PORT: 8080
+      WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     volumes:
+      - \${CONFIG_PATH}:/config
       - \${TORRENTS_PATH}:/downloads
     labels:
       com.homekase.service: qbittorrent
@@ -193,9 +208,11 @@ networks:
       PUID: 1000
       PGID: 1000
       WEBUI_PORT: 8080
+      WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     ports:
       - \"\${BIND_ADDR}\${PORT}:8080\"
     volumes:
+      - \${CONFIG_PATH}:/config
       - \${TORRENTS_PATH}:/downloads
     networks:
       - homelab-net
@@ -213,6 +230,8 @@ networks:
 
   write_env_file "qbittorrent" "PORT=${PORT}
 TORRENTS_PATH=${TORRENTS_PATH}
+CONFIG_PATH=${CONFIG_PATH}
+WEBUI_PASSWORD=${WEBUI_PASSWORD}
 TS=${TS}
 USE_VPN=${USE_VPN}
 WG_PRIVATE_KEY=${WG_PRIVATE_KEY}
@@ -221,6 +240,7 @@ WG_SERVER_PUBKEY=${WG_SERVER_PUBKEY}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${TORRENTS_PATH}"
+  mkdir -p "${CONFIG_PATH}"
 }
 
 remove_qbittorrent() {
