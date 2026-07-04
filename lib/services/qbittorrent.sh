@@ -41,7 +41,7 @@ deploy_qbittorrent() {
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - \"\${BIND_ADDR}\${PORT}:8080\"
+      - \"\${BIND_ADDR}\${PORT}:\${PORT}\"
     environment:
       VPN_SERVICE_PROVIDER: custom
       VPN_TYPE: wireguard
@@ -62,7 +62,7 @@ deploy_qbittorrent() {
     environment:
       PUID: 1000
       PGID: 1000
-      WEBUI_PORT: 8080
+      WEBUI_PORT: \${PORT}
       WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     volumes:
       - \${CONFIG_PATH}:/config
@@ -86,10 +86,10 @@ networks:
     environment:
       PUID: 1000
       PGID: 1000
-      WEBUI_PORT: 8080
+      WEBUI_PORT: \${PORT}
       WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     ports:
-      - \"\${BIND_ADDR}\${PORT}:8080\"
+      - \"\${BIND_ADDR}\${PORT}:\${PORT}\"
     volumes:
       - \${CONFIG_PATH}:/config
       - \${TORRENTS_PATH}:/downloads
@@ -134,6 +134,7 @@ Proxy\HostnameLookupEnabled=false
 [Preferences]
 WebUI\AuthSubnetWhitelist=100.64.0.0/10
 WebUI\AuthSubnetWhitelistEnabled=true
+WebUI\Port=${PORT}
 WebUI\ServerDomains=*
 CONF
 
@@ -178,7 +179,7 @@ _update_qbittorrent() {
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - \"\${BIND_ADDR}\${PORT}:8080\"
+      - \"\${BIND_ADDR}\${PORT}:\${PORT}\"
     environment:
       VPN_SERVICE_PROVIDER: custom
       VPN_TYPE: wireguard
@@ -199,7 +200,7 @@ _update_qbittorrent() {
     environment:
       PUID: 1000
       PGID: 1000
-      WEBUI_PORT: 8080
+      WEBUI_PORT: \${PORT}
       WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     volumes:
       - \${CONFIG_PATH}:/config
@@ -223,10 +224,10 @@ networks:
     environment:
       PUID: 1000
       PGID: 1000
-      WEBUI_PORT: 8080
+      WEBUI_PORT: \${PORT}
       WEBUI_PASSWORD: \${WEBUI_PASSWORD}
     ports:
-      - \"\${BIND_ADDR}\${PORT}:8080\"
+      - \"\${BIND_ADDR}\${PORT}:\${PORT}\"
     volumes:
       - \${CONFIG_PATH}:/config
       - \${TORRENTS_PATH}:/downloads
@@ -271,6 +272,7 @@ Proxy\HostnameLookupEnabled=false
 [Preferences]
 WebUI\AuthSubnetWhitelist=100.64.0.0/10
 WebUI\AuthSubnetWhitelistEnabled=true
+WebUI\Port=${PORT}
 WebUI\ServerDomains=*
 CONF
 }
