@@ -17,6 +17,7 @@ SERVICES=(
   "vikunja:Task management and calendar"
   "assistant:AI assistant with chat"
   "app:Server companion app"
+  "navidrome:Music server (Spotify alternative)"
 )
 
 _service_description() {

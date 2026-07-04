@@ -84,6 +84,13 @@ teardown() {
   assert_output --partial "assistant"
 }
 
+@test "cmd_list output contains navidrome" {
+  export HOMEKASE_DIR="$PROJECT_ROOT"
+  source "$PROJECT_ROOT/lib/services/service.sh"
+  run cmd_list
+  assert_output --partial "navidrome"
+}
+
 @test "cmd_add with unknown name exits 1" {
   export HOMEKASE_DIR="$PROJECT_ROOT"
   source "$PROJECT_ROOT/lib/services/service.sh"
