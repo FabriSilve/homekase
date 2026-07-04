@@ -74,13 +74,19 @@ def _get_tailscale_info() -> dict[str, str]:
     return {"hostname": ts_host, "domain": domain}
 
 
+HOMELAB_DIR = os.environ.get("HOMELAB_DIR", "/opt/homekase")
+
+
 async def _get_services() -> list[dict[str, Any]]:
     try:
         transport = httpx.AsyncHTTPTransport(uds=DOCKER_SOCKET)
         async with httpx.AsyncClient(transport=transport, timeout=5.0) as client:
             resp = await client.get(
                 "http://localhost/containers/json",
-                params={"filters": '{"label":["com.homekase.service"]}'},
+                params={
+                    "all": "true",
+                    "filters": '{"label":["com.homekase.service"]}',
+                },
             )
             resp.raise_for_status()
             containers = resp.json()
@@ -117,13 +123,7 @@ def _get_service_url(ts: dict[str, str], port: str) -> str:
     return "-"
 
 
-@app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    ts = _get_tailscale_info()
-    containers = await _get_services()
-    cfg = _load_config()
-    apps = cfg.get("apps", {})
-
+def _build_service_list(ts: dict[str, str], containers: list[dict]) -> list[dict]:
     service_list = []
     for c in containers:
         port = c["port"]
@@ -134,10 +134,27 @@ async def dashboard(request: Request):
             "port": port,
             "url": url,
         })
+    return service_list
+
+
+async def _render_service_grid(ts: dict[str, str]) -> str:
+    containers = await _get_services()
+    service_list = _build_service_list(ts, containers)
+    template = _jinja_env.get_template("_service_grid.html")
+    return template.render(services=service_list)
+
+
+@app.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    ts = _get_tailscale_info()
+    cfg = _load_config()
+    apps = cfg.get("apps", {})
+
+    grid_html = await _render_service_grid(ts)
 
     template = _jinja_env.get_template("index.html")
     html = template.render(
-        services=service_list,
+        service_grid=grid_html,
         tailscale=ts,
         installed_apps=list(apps.keys()),
         dashboard_password=bool(DASHBOARD_PASSWORD),
@@ -267,6 +284,36 @@ async def exec_command(request: Request):
         return HTMLResponse("<pre>Command timed out (30s)</pre>")
     except Exception as e:
         return HTMLResponse(f"<pre>Error: {e}</pre>")
+
+
+def _docker_compose(name: str, action: str) -> str:
+    compose_file = f"{HOMELAB_DIR}/{name}/docker-compose.yml"
+    env_file = f"{HOMELAB_DIR}/{name}/.env"
+    cmd = ["docker", "compose", "-f", compose_file]
+    if os.path.isfile(env_file):
+        cmd.extend(["--env-file", env_file])
+    cmd.append(action)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return result.stdout + result.stderr
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@app.post("/api/services/{name}/pause", response_class=HTMLResponse)
+async def api_service_pause(name: str):
+    output = _docker_compose(name, "stop")
+    ts = _get_tailscale_info()
+    grid_html = await _render_service_grid(ts)
+    return HTMLResponse(grid_html)
+
+
+@app.post("/api/services/{name}/resume", response_class=HTMLResponse)
+async def api_service_resume(name: str):
+    output = _docker_compose(name, "start")
+    ts = _get_tailscale_info()
+    grid_html = await _render_service_grid(ts)
+    return HTMLResponse(grid_html)
 
 
 @app.get("/api/services")

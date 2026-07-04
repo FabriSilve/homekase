@@ -200,6 +200,105 @@ cmd_restart() {
   ok "${name} restarted."
 }
 
+_find_compose_file() {
+  local name="$1"
+  local deploy_dir="${HOMELAB_DIR}/${name}"
+  local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
+
+  if [[ -f "${deploy_dir}/docker-compose.yml" ]]; then
+    echo "${deploy_dir}/docker-compose.yml"
+  elif [[ -f "${repo_dir}/docker-compose.yml" ]]; then
+    echo "${repo_dir}/docker-compose.yml"
+  fi
+}
+
+_find_env_file() {
+  local name="$1"
+  local deploy_dir="${HOMELAB_DIR}/${name}"
+  local env_file=""
+  [[ -f "${deploy_dir}/.env" ]] && echo "${deploy_dir}/.env"
+}
+
+cmd_pause() {
+  local name="${1:-}"
+  if [[ -z "${name}" ]]; then
+    error "Usage: homekase pause <service>"
+    echo "Run 'homekase list' to see available services."
+    exit 1
+  fi
+  if ! config_app_installed "${name}" 2>/dev/null; then
+    error "Service ${name} is not installed"
+    echo "Run 'homekase list' to see available services."
+    exit 1
+  fi
+
+  require_root
+  header "Pausing ${name}"
+
+  if systemctl is-active --quiet "homekase-${name}" 2>/dev/null; then
+    systemctl stop "homekase-${name}"
+    ok "${name} paused."
+    return
+  fi
+
+  local compose_file env_file=""
+  compose_file="$(_find_compose_file "${name}")"
+  if [[ -z "${compose_file}" ]]; then
+    error "No compose file found for ${name}"
+    exit 1
+  fi
+
+  local env_path
+  env_path="$(_find_env_file "${name}")"
+  [[ -n "${env_path}" ]] && env_file="--env-file ${env_path}"
+
+  docker compose -f "${compose_file}" ${env_file} stop
+  ok "${name} paused."
+}
+
+cmd_resume() {
+  local name="${1:-}"
+  if [[ -z "${name}" ]]; then
+    error "Usage: homekase resume <service>"
+    echo "Run 'homekase list' to see available services."
+    exit 1
+  fi
+  if ! config_app_installed "${name}" 2>/dev/null; then
+    error "Service ${name} is not installed"
+    echo "Run 'homekase list' to see available services."
+    exit 1
+  fi
+
+  require_root
+  header "Resuming ${name}"
+
+  if systemctl is-active --quiet "homekase-${name}" 2>/dev/null; then
+    info "${name} is already running."
+    return
+  fi
+
+  local compose_file env_file=""
+  compose_file="$(_find_compose_file "${name}")"
+
+  if [[ -f "/etc/systemd/system/homekase-${name}.service" ]]; then
+    systemctl start "homekase-${name}"
+    ok "${name} resumed."
+    return
+  fi
+
+  if [[ -z "${compose_file}" ]]; then
+    error "No compose file found for ${name}"
+    exit 1
+  fi
+
+  local env_path
+  env_path="$(_find_env_file "${name}")"
+  [[ -n "${env_path}" ]] && env_file="--env-file ${env_path}"
+
+  docker compose -f "${compose_file}" ${env_file} start
+  ok "${name} resumed."
+}
+
 cmd_update_service() {
   local name="${1:-}"
   if [[ -z "${name}" ]]; then

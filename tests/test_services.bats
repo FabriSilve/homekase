@@ -118,3 +118,31 @@ teardown() {
   run cmd_remove "__no_such_service__"
   assert_output --partial "Unknown service"
 }
+
+@test "cmd_pause with unknown name exits 1" {
+  export HOMEKASE_DIR="$PROJECT_ROOT"
+  source "$PROJECT_ROOT/lib/services/service.sh"
+  run cmd_pause "__no_such_service__"
+  assert_failure
+}
+
+@test "cmd_pause with unknown name output contains error" {
+  export HOMEKASE_DIR="$PROJECT_ROOT"
+  source "$PROJECT_ROOT/lib/services/service.sh"
+  run cmd_pause "__no_such_service__"
+  assert_output --partial "Unknown service"
+}
+
+@test "cmd_resume with unknown name exits 1" {
+  export HOMEKASE_DIR="$PROJECT_ROOT"
+  source "$PROJECT_ROOT/lib/services/service.sh"
+  run cmd_resume "__no_such_service__"
+  assert_failure
+}
+
+@test "cmd_resume with unknown name output contains error" {
+  export HOMEKASE_DIR="$PROJECT_ROOT"
+  source "$PROJECT_ROOT/lib/services/service.sh"
+  run cmd_resume "__no_such_service__"
+  assert_output --partial "Unknown service"
+}

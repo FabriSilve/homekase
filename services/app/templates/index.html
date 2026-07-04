@@ -146,6 +146,11 @@
       background: var(--bg-card-hover);
     }
 
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.65rem;
+    }
+
     .btn-danger {
       border-color: rgba(255, 68, 102, 0.3);
     }
@@ -222,31 +227,7 @@
   </div>
 
   <div class="section-title">Services</div>
-  <div class="grid" id="service-grid">
-    {% for s in services %}
-    <div class="card{% if s.url and s.url != '-' %} card-clickable{% endif %}">
-      {% if s.url and s.url != '-' %}
-      <a href="{{ s.url }}" class="card-link-overlay" target="_blank" aria-label="Open {{ s.name }}"></a>
-      {% endif %}
-      <div class="card-name">{{ s.name }}</div>
-      <div class="card-row">
-        <span>Status</span>
-        <span class="value status-{{ 'running' if s.status == 'running' else 'exited' if s.status == 'exited' else 'default' }}">{{ s.status }}</span>
-      </div>
-      {% if s.port %}
-      <div class="card-row">
-        <span>Port</span>
-        <span class="value">{{ s.port }}</span>
-      </div>
-      {% endif %}
-      {% if s.url and s.url != '-' %}
-      <div class="card-row">
-        <span class="card-link-indicator">Open →</span>
-      </div>
-      {% endif %}
-    </div>
-    {% endfor %}
-  </div>
+  {{ service_grid|safe }}
 
   {% if dashboard_password and not session_valid %}
   <div class="lock-section" id="actions-section">

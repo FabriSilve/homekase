@@ -31,6 +31,8 @@ cmd_help() {
   printf "  %-22s %s\n" "remove <name>"   "Remove a service"
   printf "  %-22s %s\n" "open <service>"  "Open service port in UFW for LAN access"
   printf "  %-22s %s\n" "close <service>" "Close service port in UFW"
+  printf "  %-22s %s\n" "pause <name>"    "Pause a service (stop containers, keep state)"
+  printf "  %-22s %s\n" "resume <name>"   "Resume a paused service"
   printf "  %-22s %s\n" "restart <name>"  "Restart service containers"
   printf "  %-22s %s\n" "logs <name>"     "Show service logs (add -f to follow)"
   printf "  %-22s %s\n" "status"          "Server and services status  (--json for structured output)"
@@ -87,6 +89,8 @@ case "${cmd}" in
   list)      source "${HOMEKASE_DIR}/lib/services/service.sh";    cmd_list "$@" ;;
   add)       source "${HOMEKASE_DIR}/lib/services/service.sh";    cmd_add "$@" ;;
   remove)    source "${HOMEKASE_DIR}/lib/services/service.sh";    cmd_remove "$@" ;;
+  pause)     source "${HOMEKASE_DIR}/lib/services/service.sh";    cmd_pause "$@" ;;
+  resume)    source "${HOMEKASE_DIR}/lib/services/service.sh";    cmd_resume "$@" ;;
   logs)      source "${HOMEKASE_DIR}/lib/services/service.sh";    cmd_logs "$@" ;;
   restart)   source "${HOMEKASE_DIR}/lib/services/service.sh";    cmd_restart "$@" ;;
   open)      source "${HOMEKASE_DIR}/lib/port.sh";                cmd_open "$@" ;;
