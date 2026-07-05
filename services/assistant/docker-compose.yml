@@ -73,6 +73,7 @@ services:
     labels:
       - "com.homekase.service=assistant"
       - "com.homekase.port=${PORT:-3000}"
+      - "com.homekase.tailscale=${TS:-false}"
     ports:
       - "${BIND_ADDR}${PORT:-3000}:8080"
     depends_on:

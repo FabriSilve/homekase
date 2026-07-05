@@ -138,7 +138,8 @@ BIND_ADDR=${BIND_ADDR}
 ASSISTANT_URL=${ASSISTANT_URL}"
 
   info "Rebuilding agent image..."
-  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build
+  docker compose -f "${ASSISTANT_DIR}/docker-compose.yml" --env-file "${DEPLOY_DIR}/.env" build \
+    || warn "Agent image build failed, will reuse existing image on startup."
 }
 
 remove_assistant() {
