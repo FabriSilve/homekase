@@ -3,6 +3,7 @@ import hmac
 import hashlib
 import os
 import secrets
+import socket
 import subprocess
 from typing import Any
 
@@ -72,6 +73,18 @@ def _get_tailscale_info() -> dict[str, str]:
     else:
         ts_host = hostname
     return {"hostname": ts_host, "domain": domain}
+
+
+def _get_lan_ip() -> str:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(1)
+        s.connect(("10.255.255.255", 1))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return ""
 
 
 HOMELAB_DIR = os.environ.get("HOMELAB_DIR", "/opt/homekase")
@@ -161,6 +174,7 @@ async def dashboard(request: Request):
     html = template.render(
         service_grid=grid_html,
         tailscale=ts,
+        lan_ip=_get_lan_ip(),
         installed_apps=list(apps.keys()),
         dashboard_password=bool(DASHBOARD_PASSWORD),
         session_valid=_check_session(request),

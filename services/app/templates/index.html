@@ -336,7 +336,10 @@
   {% endif %}
   <div class="footer">
     {% if tailscale.hostname %}
-      {{ tailscale.hostname }}{% if tailscale.domain %}{% endif %}
+      {{ tailscale.hostname }}{% if tailscale.domain %}.{{ tailscale.domain }}{% endif %}<br>
+    {% endif %}
+    {% if lan_ip %}
+      {{ lan_ip }}
     {% endif %}
   </div>
 
