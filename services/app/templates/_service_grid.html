@@ -1,54 +1,26 @@
 <div class="grid" id="service-grid">
   {% for s in services %}
-  <div class="card{% if s.url and s.url != '-' %} card-clickable{% endif %}">
-    {% if s.url and s.url != '-' %}
-    <a href="{{ s.url }}" class="card-link-overlay" target="_blank" aria-label="Open {{ s.name }}"></a>
-    {% endif %}
-    <div class="card-name">{{ s.name }}</div>
-    <div class="card-row">
-      <span>Status</span>
-      <span class="value status-{{ 'running' if s.status == 'running' else 'exited' if s.status == 'exited' else 'default' }}">{{ s.status }}</span>
+  <div class="card"
+       data-service="{{ s.name }}"
+       data-status="{{ s.status }}"
+       data-url="{{ s.url }}"
+       data-exposed="{{ s.exposed }}">
+    <div class="card-title-row">
+      <span class="card-name">{{ s.name }}</span>
+      {% if s.port %}
+      <span class="card-port">{{ s.port }}</span>
+      {% endif %}
     </div>
-    {% if s.port %}
-    <div class="card-row">
-      <span>Port</span>
-      <span class="value">{{ s.port }}</span>
-    </div>
-    {% endif %}
-    <div class="card-row" style="margin-top:0.5rem;gap:0.25rem;display:flex;justify-content:flex-start;">
-      {% if s.status == "running" %}
-      <button class="btn btn-sm"
-              hx-post="/api/services/{{ s.name }}/pause"
-              hx-target="#service-grid"
-              hx-swap="outerHTML">
-        ⏸ Pause
-      </button>
-      {% else %}
-      <button class="btn btn-sm"
-              hx-post="/api/services/{{ s.name }}/resume"
-              hx-target="#service-grid"
-              hx-swap="outerHTML">
-        ▶ Resume
-      </button>
-      {% endif %}
-      {% if s.url and s.url != '-' %}
-      <a href="{{ s.url }}" target="_blank" class="btn btn-sm" style="text-decoration:none;">↗ Open</a>
-      {% endif %}
-      {% if s.exposed == "true" %}
-      <button class="btn btn-sm btn-warning"
-              hx-post="/api/services/{{ s.name }}/unexpose"
-              hx-target="#service-grid"
-              hx-swap="outerHTML">
-        🔓 Unexpose
-      </button>
-      {% else %}
-      <button class="btn btn-sm"
-              hx-post="/api/services/{{ s.name }}/expose"
-              hx-target="#service-grid"
-              hx-swap="outerHTML">
-        🔒 Expose
-      </button>
-      {% endif %}
+    <div class="card-status-row">
+      <div class="card-icons">
+        <span class="icon-dot status-{{ 'running' if s.status == 'running' else 'exited' if s.status == 'exited' else 'default' }}">●</span>
+        {% if s.exposed == "true" %}
+        <span class="icon-lock icon-exposed">🔓</span>
+        {% else %}
+        <span class="icon-lock icon-secure">🔒</span>
+        {% endif %}
+      </div>
+      <span class="card-status status-{{ 'running' if s.status == 'running' else 'exited' if s.status == 'exited' else 'default' }}">{{ s.status }}</span>
     </div>
   </div>
   {% endfor %}
