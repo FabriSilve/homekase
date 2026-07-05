@@ -34,6 +34,21 @@
       {% if s.url and s.url != '-' %}
       <a href="{{ s.url }}" target="_blank" class="btn btn-sm" style="text-decoration:none;">↗ Open</a>
       {% endif %}
+      {% if s.exposed == "true" %}
+      <button class="btn btn-sm btn-warning"
+              hx-post="/api/services/{{ s.name }}/unexpose"
+              hx-target="#service-grid"
+              hx-swap="outerHTML">
+        🔓 Unexpose
+      </button>
+      {% else %}
+      <button class="btn btn-sm"
+              hx-post="/api/services/{{ s.name }}/expose"
+              hx-target="#service-grid"
+              hx-swap="outerHTML">
+        🔒 Expose
+      </button>
+      {% endif %}
     </div>
   </div>
   {% endfor %}

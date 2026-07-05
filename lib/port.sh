@@ -22,6 +22,33 @@ _port_get_port() {
     --format '{{index .Config.Labels "com.homekase.port"}}' 2>/dev/null || true
 }
 
+HOMELAB_DIR="${HOMELAB_DIR:-/opt/homekase}"
+
+_restart_service() {
+  local name="$1"
+  local deploy_dir="${HOMELAB_DIR}/${name}"
+  local repo_dir="${HOMEKASE_REPO_DIR:-${HOMELAB_DIR}}/services/${name}"
+
+  if systemctl is-active --quiet "homekase-${name}" 2>/dev/null; then
+    systemctl restart "homekase-${name}"
+    return 0
+  fi
+
+  local compose_file=""
+  [[ -f "${deploy_dir}/docker-compose.yml" ]] && compose_file="${deploy_dir}/docker-compose.yml"
+  [[ -z "${compose_file}" && -f "${repo_dir}/docker-compose.yml" ]] && compose_file="${repo_dir}/docker-compose.yml"
+
+  if [[ -z "${compose_file}" ]]; then
+    error "No compose file found for ${name}"
+    return 1
+  fi
+
+  local env_file=""
+  [[ -f "${deploy_dir}/.env" ]] && env_file="--env-file ${deploy_dir}/.env"
+
+  docker compose -f "${compose_file}" ${env_file} up -d
+}
+
 _port_ufw_active() {
   local ufw_status
   ufw_status="$(ufw status 2>/dev/null | head -1 || true)"
@@ -64,6 +91,109 @@ cmd_open() {
   info "Opening port ${port}/tcp for ${svc}..."
   ufw allow "${port}/tcp"
   ok "Port ${port}/tcp open — ${svc} accessible on LAN."
+}
+
+_cmd_expose_common() {
+  local svc="$1"
+  if ! config_app_installed "${svc}" 2>/dev/null; then
+    error "Service '${svc}' is not installed."
+    return 1
+  fi
+  local port
+  port="$(config_app_get "${svc}" "port" 2>/dev/null || true)"
+  if [[ -z "${port}" || "${port}" == "null" ]]; then
+    port="$(_port_resolve "${svc}")" || return 1
+  fi
+  echo "${port}"
+}
+
+cmd_expose() {
+  local svc="${1:-}"
+  if [[ -z "${svc}" || "${svc}" == "--help" || "${svc}" == "-h" ]]; then
+    echo
+    echo -e "${BOLD}USAGE${RESET}"
+    echo "  homekase expose <service>    Expose service on LAN (bypass Tailscale)"
+    echo
+    return 0
+  fi
+
+  local port
+  port="$(_cmd_expose_common "${svc}")" || return 1
+
+  local exposed
+  exposed="$(config_app_get "${svc}" "exposed" 2>/dev/null || echo 'false')"
+  if [[ "${exposed}" == "true" ]]; then
+    warn "Service '${svc}' is already exposed on LAN."
+    return 0
+  fi
+
+  require_root
+  header "Exposing ${svc} on LAN"
+
+  local env_file="${HOMELAB_DIR}/${svc}/.env"
+  if [[ -f "${env_file}" ]]; then
+    if grep -q "^BIND_ADDR=127.0.0.1:" "${env_file}"; then
+      sed -i 's/^BIND_ADDR=127.0.0.1:/BIND_ADDR=/' "${env_file}"
+      info "Removed 127.0.0.1 bind restriction from .env"
+    fi
+  fi
+
+  _restart_service "${svc}"
+
+  if _port_ufw_active; then
+    ufw allow "${port}/tcp" 2>/dev/null || true
+    info "Opened port ${port}/tcp in UFW."
+  fi
+
+  config_app_set "${svc}" "exposed" "true"
+  ok "Service '${svc}' is now exposed on LAN (port ${port})."
+}
+
+cmd_unexpose() {
+  local svc="${1:-}"
+  if [[ -z "${svc}" || "${svc}" == "--help" || "${svc}" == "-h" ]]; then
+    echo
+    echo -e "${BOLD}USAGE${RESET}"
+    echo "  homekase unexpose <service>  Remove LAN exposure, restore Tailscale-only access"
+    echo
+    return 0
+  fi
+
+  local port
+  port="$(_cmd_expose_common "${svc}")" || return 1
+
+  local exposed
+  exposed="$(config_app_get "${svc}" "exposed" 2>/dev/null || echo 'false')"
+  if [[ "${exposed}" != "true" ]]; then
+    warn "Service '${svc}' is not currently exposed on LAN."
+    return 0
+  fi
+
+  require_root
+  header "Removing LAN exposure for ${svc}"
+
+  local ts_installed
+  ts_installed="$(config_get 'tailscale.installed' 2>/dev/null || echo 'false')"
+
+  local env_file="${HOMELAB_DIR}/${svc}/.env"
+  if [[ -f "${env_file}" ]]; then
+    if grep -q "^BIND_ADDR=$" "${env_file}"; then
+      if [[ "${ts_installed}" == "true" ]]; then
+        sed -i 's/^BIND_ADDR=$/BIND_ADDR=127.0.0.1:/' "${env_file}"
+        info "Restored 127.0.0.1 bind restriction in .env"
+      fi
+    fi
+  fi
+
+  _restart_service "${svc}"
+
+  if _port_ufw_active; then
+    ufw delete allow "${port}/tcp" 2>/dev/null || true
+    info "Closed port ${port}/tcp in UFW."
+  fi
+
+  config_app_set "${svc}" "exposed" "false"
+  ok "Service '${svc}' is no longer exposed on LAN."
 }
 
 cmd_close() {

@@ -103,12 +103,16 @@ async def _get_services() -> list[dict[str, Any]]:
         svc_name = labels.get("com.homekase.service", container_name or "unknown")
         port = labels.get("com.homekase.port", "")
 
+        cfg = _load_config()
+        exposed = cfg.get("apps", {}).get(svc_name, {}).get("exposed", "false")
+
         services.append({
             "name": svc_name,
             "container": container_name,
             "status": c.get("State", "unknown"),
             "port": port,
             "image": c.get("Image", ""),
+            "exposed": exposed,
         })
 
     services.sort(key=lambda s: s["name"].lower())
@@ -133,6 +137,7 @@ def _build_service_list(ts: dict[str, str], containers: list[dict]) -> list[dict
             "status": c["status"],
             "port": port,
             "url": url,
+            "exposed": c.get("exposed", "false"),
         })
     return service_list
 
@@ -311,6 +316,28 @@ async def api_service_pause(name: str):
 @app.post("/api/services/{name}/resume", response_class=HTMLResponse)
 async def api_service_resume(name: str):
     output = _docker_compose(name, "start")
+    ts = _get_tailscale_info()
+    grid_html = await _render_service_grid(ts)
+    return HTMLResponse(grid_html)
+
+
+@app.post("/api/services/{name}/expose", response_class=HTMLResponse)
+async def api_service_expose(name: str):
+    subprocess.run(
+        ["homekase", "expose", name],
+        capture_output=True, text=True, timeout=30,
+    )
+    ts = _get_tailscale_info()
+    grid_html = await _render_service_grid(ts)
+    return HTMLResponse(grid_html)
+
+
+@app.post("/api/services/{name}/unexpose", response_class=HTMLResponse)
+async def api_service_unexpose(name: str):
+    subprocess.run(
+        ["homekase", "unexpose", name],
+        capture_output=True, text=True, timeout=30,
+    )
     ts = _get_tailscale_info()
     grid_html = await _render_service_grid(ts)
     return HTMLResponse(grid_html)
