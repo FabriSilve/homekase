@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2154  # GREEN/RED/RESET set by common.sh
+# shellcheck disable=SC2154  # GREEN/RED/YELLOW/RESET set by common.sh
 
 # ---------------------------------------------------------------------------
 # _status_collect_system
@@ -73,6 +73,7 @@ _status_collect_services() {
   _svc_port=()
   _svc_running=()
   _svc_url=()
+  _svc_exposed=()
 
   local ts_hostname
   ts_hostname="$(config_get 'tailscale.hostname' 2>/dev/null || true)"
@@ -99,10 +100,14 @@ _status_collect_services() {
       url="https://${ts_hostname}:${port}"
     fi
 
+    local exposed
+    exposed="$(config_app_get "${svc}" "exposed" 2>/dev/null || echo 'false')"
+
     _svc_name+=("${svc}")
     _svc_port+=("${port}")
     _svc_running+=("${running}")
     _svc_url+=("${url}")
+    _svc_exposed+=("${exposed}")
   done <<< "${containers}"
 }
 
@@ -135,7 +140,7 @@ cmd_status() {
 
     local svc_json="[]"
     for i in "${!_svc_name[@]}"; do
-      local url_val running_bool port_int
+      local url_val running_bool port_int exposed_bool
       if [[ "${_svc_url[${i}]}" == "null" ]]; then
         url_val="null"
       else
@@ -143,14 +148,17 @@ cmd_status() {
       fi
       running_bool="false"
       [[ "${_svc_running[${i}]}" == "true" ]] && running_bool="true"
+      exposed_bool="false"
+      [[ "${_svc_exposed[${i}]}" == "true" ]] && exposed_bool="true"
       port_int="${_svc_port[${i}]:-0}"
       svc_json="$(jq -n \
-        --argjson arr    "${svc_json}" \
-        --arg  name      "${_svc_name[${i}]}" \
-        --argjson port   "${port_int:-0}" \
-        --argjson run    "${running_bool}" \
-        --argjson url    "${url_val}" \
-        '$arr + [{"name":$name,"port":$port,"running":$run,"url":$url}]')"
+        --argjson arr     "${svc_json}" \
+        --arg  name       "${_svc_name[${i}]}" \
+        --argjson port    "${port_int:-0}" \
+        --argjson run     "${running_bool}" \
+        --argjson url     "${url_val}" \
+        --argjson exposed "${exposed_bool}" \
+        '$arr + [{"name":$name,"port":$port,"running":$run,"url":$url,"exposed":$exposed}]')"
     done
 
     jq -n \
@@ -205,7 +213,7 @@ cmd_status() {
   else
     local i
     for i in "${!_svc_name[@]}"; do
-      local sym status_word url_part
+      local sym status_word url_part exposed_disp
       if [[ "${_svc_running[${i}]}" == "true" ]]; then
         sym="${GREEN}●${RESET}"
         status_word="running"
@@ -213,10 +221,15 @@ cmd_status() {
         sym="${RED}○${RESET}"
         status_word="stopped"
       fi
+      if [[ "${_svc_exposed[${i}]}" == "true" ]]; then
+        exposed_disp="${YELLOW}exposed${RESET}"
+      else
+        exposed_disp="-"
+      fi
       url_part=""
       [[ "${_svc_url[${i}]}" != "null" && -n "${_svc_url[${i}]}" ]] && url_part="   ${_svc_url[${i}]}"
-      printf "  %-14s %b %-10s :%s%s\n" \
-        "${_svc_name[${i}]}" "${sym}" "${status_word}" "${_svc_port[${i}]}" "${url_part}"
+      printf "  %-14s %b %-10s %-9s :%s%s\n" \
+        "${_svc_name[${i}]}" "${sym}" "${status_word}" "${exposed_disp}" "${_svc_port[${i}]}" "${url_part}"
     done
   fi
   echo
