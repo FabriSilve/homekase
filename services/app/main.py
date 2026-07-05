@@ -237,12 +237,11 @@ _SHORTCUTS = """\
 @app.get("/api/lock-form", response_class=HTMLResponse)
 async def lock_form():
     return HTMLResponse(
-        '<div class="unlock-form" id="lock-section">'
+        '<form class="unlock-form" hx-post="/api/unlock" hx-target="#actions-section" hx-swap="innerHTML">'
         '<input type="password" name="password" class="terminal-input" '
         'placeholder="Dashboard password" style="max-width:240px;">'
-        '<button class="btn" type="submit" '
-        'hx-post="/api/unlock" hx-target="#actions-section" hx-swap="outerHTML">'
-        "Unlock</button></div>"
+        '<button class="btn" type="submit">'
+        "Unlock</button></form>"
     )
 
 
@@ -252,13 +251,12 @@ async def unlock(request: Request):
     password = data.get("password", "")
     if password != DASHBOARD_PASSWORD:
         return HTMLResponse(
-            '<div class="unlock-form" id="lock-section">'
+            '<form class="unlock-form" hx-post="/api/unlock" hx-target="#actions-section" hx-swap="innerHTML">'
             '<p style="color:var(--accent-red);margin-bottom:0.5rem;">Wrong password</p>'
             '<input type="password" name="password" class="terminal-input" '
             'placeholder="Dashboard password" style="max-width:240px;">'
-            '<button class="btn" type="submit" '
-            'hx-post="/api/unlock" hx-target="#actions-section" hx-swap="outerHTML">'
-            "Unlock</button></div>"
+            '<button class="btn" type="submit">'
+            "Unlock</button></form>"
         )
     token = _make_session_token()
     resp = HTMLResponse(_SHORTCUTS)
