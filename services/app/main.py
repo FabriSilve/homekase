@@ -321,28 +321,6 @@ async def api_service_resume(name: str):
     return HTMLResponse(grid_html)
 
 
-@app.post("/api/services/{name}/expose", response_class=HTMLResponse)
-async def api_service_expose(name: str):
-    subprocess.run(
-        ["homekase", "expose", name],
-        capture_output=True, text=True, timeout=30,
-    )
-    ts = _get_tailscale_info()
-    grid_html = await _render_service_grid(ts)
-    return HTMLResponse(grid_html)
-
-
-@app.post("/api/services/{name}/unexpose", response_class=HTMLResponse)
-async def api_service_unexpose(name: str):
-    subprocess.run(
-        ["homekase", "unexpose", name],
-        capture_output=True, text=True, timeout=30,
-    )
-    ts = _get_tailscale_info()
-    grid_html = await _render_service_grid(ts)
-    return HTMLResponse(grid_html)
-
-
 @app.get("/api/services")
 async def api_services():
     ts = _get_tailscale_info()

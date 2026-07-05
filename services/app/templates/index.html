@@ -270,11 +270,7 @@
 
   <div class="section-title services-header">
     <span>Services</span>
-    <div class="toggle-bar">
-      <button class="toggle toggle-active" data-mode="none" title="Open service">↗ Open</button>
-      <button class="toggle" data-mode="pause-resume" title="Pause / Resume">⏸ Pause/Resume</button>
-      <button class="toggle" data-mode="expose-unexpose" title="Expose / Unexpose">🔒 Expose/Unexpose</button>
-    </div>
+    <button class="toggle" id="pause-toggle" title="Click to toggle pause/resume mode">⏸ Pause</button>
   </div>
   {{ service_grid|safe }}
 
@@ -345,38 +341,29 @@
   </div>
 
   <script>
-    document.body.dataset.actionMode = 'none';
+    var pauseMode = false;
+
+    document.getElementById('pause-toggle').addEventListener('click', function() {
+      pauseMode = !pauseMode;
+      this.classList.toggle('toggle-active', pauseMode);
+      this.textContent = pauseMode ? '⏸ Pause (on)' : '⏸ Pause';
+    });
 
     document.addEventListener('click', function(e) {
-      var toggle = e.target.closest('.toggle');
-      if (toggle) {
-        document.querySelectorAll('.toggle').forEach(function(t) { t.classList.remove('toggle-active'); });
-        toggle.classList.add('toggle-active');
-        document.body.dataset.actionMode = toggle.dataset.mode;
-        e.stopPropagation();
-        return;
-      }
-
       var card = e.target.closest('.card');
       if (!card) return;
+      if (e.target.closest('.toggle')) return;
 
-      var mode = document.body.dataset.actionMode || 'none';
       var name = card.dataset.service;
       var status = card.dataset.status;
-      var exposed = card.dataset.exposed;
       var url = card.dataset.url;
 
-      if (mode === 'none') {
+      if (!pauseMode) {
         if (url && url !== '-') window.open(url, '_blank');
         return;
       }
 
-      var endpoint;
-      if (mode === 'pause-resume') {
-        endpoint = status === 'running' ? 'pause' : 'resume';
-      } else {
-        endpoint = exposed === 'true' ? 'unexpose' : 'expose';
-      }
+      var endpoint = status === 'running' ? 'pause' : 'resume';
 
       if (typeof htmx !== 'undefined') {
         htmx.ajax('POST', '/api/services/' + encodeURIComponent(name) + '/' + endpoint, {
