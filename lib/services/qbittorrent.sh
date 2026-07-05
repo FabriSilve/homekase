@@ -136,6 +136,7 @@ WebUI\AuthSubnetWhitelist=100.64.0.0/10
 WebUI\AuthSubnetWhitelistEnabled=true
 WebUI\Port=${PORT}
 WebUI\ServerDomains=*
+WebUI\CSRFProtection=false
 CONF
 
   start_service "qbittorrent"
@@ -274,6 +275,7 @@ WebUI\AuthSubnetWhitelist=100.64.0.0/10
 WebUI\AuthSubnetWhitelistEnabled=true
 WebUI\Port=${PORT}
 WebUI\ServerDomains=*
+WebUI\CSRFProtection=false
 CONF
 }
 
