@@ -51,6 +51,7 @@ BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${STORAGE_PATH}"
   touch "${HOMELAB_DIR}/filebrowser/filebrowser.db"
+  chmod 666 "${HOMELAB_DIR}/filebrowser/filebrowser.db"
 
   start_service "filebrowser"
 
@@ -112,6 +113,7 @@ BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${STORAGE_PATH}"
   touch "${HOMELAB_DIR}/filebrowser/filebrowser.db"
+  chmod 666 "${HOMELAB_DIR}/filebrowser/filebrowser.db"
 }
 
 remove_filebrowser() {
