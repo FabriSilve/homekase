@@ -50,6 +50,7 @@ TS=${TS}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${STORAGE_PATH}"
+  touch "${HOMELAB_DIR}/filebrowser/filebrowser.db"
 
   start_service "filebrowser"
 
@@ -110,6 +111,7 @@ TS=${TS}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${STORAGE_PATH}"
+  touch "${HOMELAB_DIR}/filebrowser/filebrowser.db"
 }
 
 remove_filebrowser() {
