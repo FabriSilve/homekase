@@ -24,31 +24,6 @@ _port_get_port() {
 
 HOMELAB_DIR="${HOMELAB_DIR:-/opt/homekase}"
 
-_restart_service() {
-  local name="$1"
-  local deploy_dir="${HOMELAB_DIR}/${name}"
-  local repo_dir="${HOMEKASE_REPO_DIR:-${HOMELAB_DIR}}/services/${name}"
-
-  if systemctl is-active --quiet "homekase-${name}" 2>/dev/null; then
-    systemctl restart "homekase-${name}"
-    return 0
-  fi
-
-  local compose_file=""
-  [[ -f "${deploy_dir}/docker-compose.yml" ]] && compose_file="${deploy_dir}/docker-compose.yml"
-  [[ -z "${compose_file}" && -f "${repo_dir}/docker-compose.yml" ]] && compose_file="${repo_dir}/docker-compose.yml"
-
-  if [[ -z "${compose_file}" ]]; then
-    error "No compose file found for ${name}"
-    return 1
-  fi
-
-  local env_file=""
-  [[ -f "${deploy_dir}/.env" ]] && env_file="--env-file ${deploy_dir}/.env"
-
-  docker compose -f "${compose_file}" ${env_file} up -d
-}
-
 _port_ufw_active() {
   local ufw_status
   ufw_status="$(ufw status 2>/dev/null | head -1 || true)"
@@ -138,7 +113,8 @@ cmd_expose() {
     fi
   fi
 
-  _restart_service "${svc}"
+  source "${HOMEKASE_DIR}/lib/services/service.sh"
+  cmd_restart "${svc}"
 
   if _port_ufw_active; then
     ufw allow "${port}/tcp" 2>/dev/null || true
@@ -185,7 +161,8 @@ cmd_unexpose() {
     fi
   fi
 
-  _restart_service "${svc}"
+  source "${HOMEKASE_DIR}/lib/services/service.sh"
+  cmd_restart "${svc}"
 
   if _port_ufw_active; then
     ufw delete allow "${port}/tcp" 2>/dev/null || true
