@@ -50,6 +50,7 @@ TS=${TS}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${STORAGE_PATH}"
+  rm -f "${HOMELAB_DIR}/filebrowser/filebrowser.db"
   touch "${HOMELAB_DIR}/filebrowser/filebrowser.db"
   chmod 666 "${HOMELAB_DIR}/filebrowser/filebrowser.db"
 
