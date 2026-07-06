@@ -6,12 +6,16 @@ deploy_filebrowser() {
   require_root
   header "Installing Filebrowser"
 
-  local PORT STORAGE_PATH TS BIND_ADDR
+  local PORT STORAGE_PATH TS BIND_ADDR PUID PGID
 
   PORT="$(port_wizard "filebrowser" 1)"
   STORAGE_PATH="$(ask_input "Storage root to browse" "/storage")"
   TS="$(tailscale_serve_setup "${PORT}")"
   BIND_ADDR="$(bind_address "${TS}")"
+
+  mkdir -p "${STORAGE_PATH}"
+  PUID="$(stat -c "%u" "${STORAGE_PATH}")"
+  PGID="$(stat -c "%g" "${STORAGE_PATH}")"
 
   write_service_dir "filebrowser"
 
@@ -20,6 +24,7 @@ deploy_filebrowser() {
     image: filebrowser/filebrowser:latest
     container_name: filebrowser
     restart: unless-stopped
+    user: \"\${PUID}:\${PGID}\"
     ports:
       - \"\${BIND_ADDR}\${PORT}:80\"
     volumes:
@@ -43,9 +48,10 @@ networks:
   write_env_file "filebrowser" "PORT=${PORT}
 STORAGE_PATH=${STORAGE_PATH}
 TS=${TS}
-BIND_ADDR=${BIND_ADDR}"
+BIND_ADDR=${BIND_ADDR}
+PUID=${PUID}
+PGID=${PGID}"
 
-  mkdir -p "${STORAGE_PATH}"
   rm -f "${HOMELAB_DIR}/filebrowser/filebrowser.db"
   touch "${HOMELAB_DIR}/filebrowser/filebrowser.db"
   chmod 666 "${HOMELAB_DIR}/filebrowser/filebrowser.db"
@@ -62,12 +68,16 @@ BIND_ADDR=${BIND_ADDR}"
 }
 
 _update_filebrowser() {
-  local PORT STORAGE_PATH TS BIND_ADDR
+  local PORT STORAGE_PATH TS BIND_ADDR PUID PGID
 
   PORT="$(config_app_get filebrowser port)"
   STORAGE_PATH="$(config_app_get filebrowser storage_path)"
   TS="$(config_app_get filebrowser tailscale)"
   BIND_ADDR="$(bind_address "${TS}")"
+
+  mkdir -p "${STORAGE_PATH}"
+  PUID="$(stat -c "%u" "${STORAGE_PATH}")"
+  PGID="$(stat -c "%g" "${STORAGE_PATH}")"
 
   write_service_dir "filebrowser"
 
@@ -76,6 +86,7 @@ _update_filebrowser() {
     image: filebrowser/filebrowser:latest
     container_name: filebrowser
     restart: unless-stopped
+    user: \"\${PUID}:\${PGID}\"
     ports:
       - \"\${BIND_ADDR}\${PORT}:80\"
     volumes:
@@ -99,9 +110,10 @@ networks:
   write_env_file "filebrowser" "PORT=${PORT}
 STORAGE_PATH=${STORAGE_PATH}
 TS=${TS}
-BIND_ADDR=${BIND_ADDR}"
+BIND_ADDR=${BIND_ADDR}
+PUID=${PUID}
+PGID=${PGID}"
 
-  mkdir -p "${STORAGE_PATH}"
   touch "${HOMELAB_DIR}/filebrowser/filebrowser.db"
   chmod 666 "${HOMELAB_DIR}/filebrowser/filebrowser.db"
 }
