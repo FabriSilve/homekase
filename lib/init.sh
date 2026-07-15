@@ -154,11 +154,6 @@ install_tool_parted() {
 }
 
 install_tool_fish() {
-  if ! grep -q "ppa:fish-shell/release-3" /etc/apt/sources.list.d/*.list 2>/dev/null; then
-    apt-get install -y -qq software-properties-common
-    add-apt-repository -y ppa:fish-shell/release-3
-    apt-get update -qq
-  fi
   apt-get install -y -qq fish
   ok "fish installed"
 }
@@ -225,6 +220,7 @@ install_tool_gh() {
 }
 
 install_tool_nvim() {
+  apt-get install -y -qq build-essential
   local nvim_bin_dir="/opt/homekase/nvim-bin"
   local nvim_config_dir="/opt/homekase/nvim-config"
 
