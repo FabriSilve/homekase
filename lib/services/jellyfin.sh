@@ -19,7 +19,7 @@ deploy_jellyfin() {
 
   write_compose_file "jellyfin" "services:
   jellyfin:
-    image: jellyfin/jellyfin:10.9.11
+    image: jellyfin/jellyfin:10
     container_name: jellyfin
     restart: unless-stopped
     ports:
@@ -51,11 +51,11 @@ BIND_ADDR=${BIND_ADDR}"
 
   start_service "jellyfin"
 
-  config_app_set jellyfin installed    true
-  config_app_set jellyfin port         "${PORT}"
-  config_app_set jellyfin data_path    "${DATA_PATH}"
+  config_app_set jellyfin installed true
+  config_app_set jellyfin port "${PORT}"
+  config_app_set jellyfin data_path "${DATA_PATH}"
   config_app_set jellyfin storage_path "${MEDIA_PATH}"
-  config_app_set jellyfin tailscale    "${TS}"
+  config_app_set jellyfin tailscale "${TS}"
 
   ok "Jellyfin running on port ${PORT}  →  ${JELLYFIN_URL}"
 }
@@ -75,7 +75,7 @@ _update_jellyfin() {
 
   write_compose_file "jellyfin" "services:
   jellyfin:
-    image: jellyfin/jellyfin:10.9.11
+    image: jellyfin/jellyfin:10
     container_name: jellyfin
     restart: unless-stopped
     ports:
