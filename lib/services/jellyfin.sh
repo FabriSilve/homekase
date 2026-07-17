@@ -12,7 +12,7 @@ _configure_jellyfin_network() {
     's|<EnablePublishedServerUriByRequest>false</EnablePublishedServerUriByRequest>|<EnablePublishedServerUriByRequest>true</EnablePublishedServerUriByRequest>|' \
     "${netcfg}"
 
-  docker restart jellyfin
+  docker inspect jellyfin &>/dev/null && docker restart jellyfin
 }
 
 deploy_jellyfin() {
