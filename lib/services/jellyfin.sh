@@ -4,6 +4,7 @@
 
 _configure_jellyfin_network() {
   local data_path="$1"
+  local jellyfin_url="$2"
   local netcfg="${data_path}/config/network.xml"
 
   [[ -f "${netcfg}" ]] || return 0
@@ -13,6 +14,26 @@ _configure_jellyfin_network() {
     "${netcfg}"
 
   info "network.xml: EnablePublishedServerUriByRequest set to true"
+
+  # Add subnet mapping for Tailscale so streaming URLs use the external hostname.
+  # Only applies when Tailscale is active (URL is not localhost).
+  if [[ -n "${jellyfin_url}" && "${jellyfin_url}" != "http://localhost"* ]]; then
+    local subnet_entry="<string>172.18.0.0/16=${jellyfin_url}</string>"
+    if ! grep -q "${subnet_entry}" "${netcfg}" 2>/dev/null; then
+      # Replace self-closing <PublishedServerUriBySubnet /> with full section
+      if grep -q '<PublishedServerUriBySubnet\s*/>' "${netcfg}" 2>/dev/null; then
+        sed -i \
+          's|<PublishedServerUriBySubnet\s*/>|<PublishedServerUriBySubnet>\n    '"${subnet_entry}"'\n  </PublishedServerUriBySubnet>|' \
+          "${netcfg}"
+      else
+        # Append to existing section before closing tag
+        sed -i \
+          's|</PublishedServerUriBySubnet>|    '"${subnet_entry}"'\n  </PublishedServerUriBySubnet>|' \
+          "${netcfg}"
+      fi
+      info "network.xml: PublishedServerUriBySubnet added for ${jellyfin_url}"
+    fi
+  fi
 }
 
 _configure_jellyfin_hardware() {
@@ -96,7 +117,7 @@ BIND_ADDR=${BIND_ADDR}"
   mkdir -p "${DATA_PATH}" "${MEDIA_PATH}"
 
   start_service "jellyfin"
-  _configure_jellyfin_network "${DATA_PATH}"
+  _configure_jellyfin_network "${DATA_PATH}" "${JELLYFIN_URL}"
   _configure_jellyfin_hardware "${DATA_PATH}"
   _restart_jellyfin
 
@@ -167,7 +188,7 @@ BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${DATA_PATH}" "${MEDIA_PATH}"
 
-  _configure_jellyfin_network "${DATA_PATH}"
+  _configure_jellyfin_network "${DATA_PATH}" "${JELLYFIN_URL}"
   _configure_jellyfin_hardware "${DATA_PATH}"
 }
 
