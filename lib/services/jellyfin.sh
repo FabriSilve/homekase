@@ -12,7 +12,7 @@ _configure_jellyfin_network() {
     's|<EnablePublishedServerUriByRequest>false</EnablePublishedServerUriByRequest>|<EnablePublishedServerUriByRequest>true</EnablePublishedServerUriByRequest>|' \
     "${netcfg}"
 
-  _restart_jellyfin
+  info "network.xml: EnablePublishedServerUriByRequest set to true"
 }
 
 _configure_jellyfin_hardware() {
@@ -25,10 +25,14 @@ _configure_jellyfin_hardware() {
   sed -i \
     's|<HardwareAccelerationType>none</HardwareAccelerationType>|<HardwareAccelerationType>vaapi</HardwareAccelerationType>|' \
     "${enccfg}"
+
+  info "encoding.xml: HardwareAccelerationType set to vaapi"
 }
 
 _restart_jellyfin() {
-  docker inspect jellyfin &>/dev/null && docker restart jellyfin
+  if docker inspect jellyfin &>/dev/null; then
+    docker restart jellyfin
+  fi
 }
 
 deploy_jellyfin() {
