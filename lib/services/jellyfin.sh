@@ -12,6 +12,22 @@ _configure_jellyfin_network() {
     's|<EnablePublishedServerUriByRequest>false</EnablePublishedServerUriByRequest>|<EnablePublishedServerUriByRequest>true</EnablePublishedServerUriByRequest>|' \
     "${netcfg}"
 
+  _restart_jellyfin
+}
+
+_configure_jellyfin_hardware() {
+  local data_path="$1"
+  local enccfg="${data_path}/config/encoding.xml"
+
+  [[ -f "${enccfg}" ]] || return 0
+  [[ -e /dev/dri/renderD128 ]] || return 0
+
+  sed -i \
+    's|<HardwareAccelerationType>none</HardwareAccelerationType>|<HardwareAccelerationType>vaapi</HardwareAccelerationType>|' \
+    "${enccfg}"
+}
+
+_restart_jellyfin() {
   docker inspect jellyfin &>/dev/null && docker restart jellyfin
 }
 
@@ -30,6 +46,19 @@ deploy_jellyfin() {
 
   write_service_dir "jellyfin"
 
+  local hw_compose=""
+  if [[ -e /dev/dri/renderD128 ]]; then
+    local video_gid render_gid
+    video_gid=$(getent group video | cut -d: -f3)
+    render_gid=$(getent group render | cut -d: -f3)
+    hw_compose="    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - \"${video_gid}\"
+      - \"${render_gid}\"
+"
+  fi
+
   write_compose_file "jellyfin" "services:
   jellyfin:
     image: jellyfin/jellyfin:10
@@ -40,7 +69,7 @@ deploy_jellyfin() {
     volumes:
       - \${DATA_PATH}:/config
       - \${MEDIA_PATH}:/media:ro
-    networks:
+${hw_compose}    networks:
       - homelab-net
     labels:
       com.homekase.service: jellyfin
@@ -64,6 +93,8 @@ BIND_ADDR=${BIND_ADDR}"
 
   start_service "jellyfin"
   _configure_jellyfin_network "${DATA_PATH}"
+  _configure_jellyfin_hardware "${DATA_PATH}"
+  _restart_jellyfin
 
   config_app_set jellyfin installed true
   config_app_set jellyfin port "${PORT}"
@@ -87,6 +118,19 @@ _update_jellyfin() {
 
   write_service_dir "jellyfin"
 
+  local hw_compose=""
+  if [[ -e /dev/dri/renderD128 ]]; then
+    local video_gid render_gid
+    video_gid=$(getent group video | cut -d: -f3)
+    render_gid=$(getent group render | cut -d: -f3)
+    hw_compose="    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - \"${video_gid}\"
+      - \"${render_gid}\"
+"
+  fi
+
   write_compose_file "jellyfin" "services:
   jellyfin:
     image: jellyfin/jellyfin:10
@@ -97,7 +141,7 @@ _update_jellyfin() {
     volumes:
       - \${DATA_PATH}:/config
       - \${MEDIA_PATH}:/media:ro
-    networks:
+${hw_compose}    networks:
       - homelab-net
     labels:
       com.homekase.service: jellyfin
@@ -120,6 +164,7 @@ BIND_ADDR=${BIND_ADDR}"
   mkdir -p "${DATA_PATH}" "${MEDIA_PATH}"
 
   _configure_jellyfin_network "${DATA_PATH}"
+  _configure_jellyfin_hardware "${DATA_PATH}"
 }
 
 remove_jellyfin() {
