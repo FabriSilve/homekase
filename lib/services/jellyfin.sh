@@ -2,6 +2,19 @@
 # Jellyfin service installer.
 # Sourced by lib/services/service.sh on `homekase add jellyfin`.
 
+_configure_jellyfin_network() {
+  local data_path="$1"
+  local netcfg="${data_path}/config/network.xml"
+
+  [[ -f "${netcfg}" ]] || return 0
+
+  sed -i \
+    's|<EnablePublishedServerUriByRequest>false</EnablePublishedServerUriByRequest>|<EnablePublishedServerUriByRequest>true</EnablePublishedServerUriByRequest>|' \
+    "${netcfg}"
+
+  docker restart jellyfin
+}
+
 deploy_jellyfin() {
   require_root
   header "Installing Jellyfin"
@@ -50,6 +63,7 @@ BIND_ADDR=${BIND_ADDR}"
   mkdir -p "${DATA_PATH}" "${MEDIA_PATH}"
 
   start_service "jellyfin"
+  _configure_jellyfin_network "${DATA_PATH}"
 
   config_app_set jellyfin installed true
   config_app_set jellyfin port "${PORT}"
@@ -104,6 +118,8 @@ JELLYFIN_URL=${JELLYFIN_URL}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${DATA_PATH}" "${MEDIA_PATH}"
+
+  _configure_jellyfin_network "${DATA_PATH}"
 }
 
 remove_jellyfin() {
