@@ -57,6 +57,7 @@ KAMIYOMU_URL=${KAMIYOMU_URL}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${DATA_PATH}/db" "${DATA_PATH}/agents" "${DATA_PATH}/logs" "${MANGA_PATH}"
+  chown -R 1000:1000 "${DATA_PATH}" "${MANGA_PATH}"
 
   start_service "kamiyomu"
 
@@ -122,6 +123,7 @@ KAMIYOMU_URL=${KAMIYOMU_URL}
 BIND_ADDR=${BIND_ADDR}"
 
   mkdir -p "${DATA_PATH}/db" "${DATA_PATH}/agents" "${DATA_PATH}/logs" "${MANGA_PATH}"
+  chown -R 1000:1000 "${DATA_PATH}" "${MANGA_PATH}"
 }
 
 remove_kamiyomu() {
