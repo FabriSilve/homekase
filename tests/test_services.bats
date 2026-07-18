@@ -84,6 +84,13 @@ teardown() {
   assert_output --partial "assistant"
 }
 
+@test "cmd_list output contains kamiyomu" {
+  export HOMEKASE_DIR="$PROJECT_ROOT"
+  source "$PROJECT_ROOT/lib/services/service.sh"
+  run cmd_list
+  assert_output --partial "kamiyomu"
+}
+
 @test "cmd_list output contains navidrome" {
   export HOMEKASE_DIR="$PROJECT_ROOT"
   source "$PROJECT_ROOT/lib/services/service.sh"

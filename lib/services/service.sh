@@ -18,6 +18,7 @@ SERVICES=(
   "assistant:AI assistant with chat"
   "app:Server companion app"
   "navidrome:Music server (Spotify alternative)"
+  "kamiyomu:Manga reader and downloader"
 )
 
 _service_description() {
