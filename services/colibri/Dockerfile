@@ -25,11 +25,13 @@ RUN apt-get update && \
 
 COPY --from=build /src/c/glm        /usr/local/libexec/colibri/glm
 COPY --from=build /src/c/coli        /usr/local/bin/coli
+COPY --from=build /src/c/version.py  /usr/local/libexec/colibri/version.py
 COPY --from=build /src/c/openai_server.py /usr/local/libexec/colibri/openai_server.py
 COPY --from=build /src/c/doctor.py   /usr/local/libexec/colibri/doctor.py
 COPY --from=build /src/c/resource_plan.py /usr/local/libexec/colibri/resource_plan.py
 COPY --from=build /src/c/tools       /usr/local/libexec/colibri/tools
 
+ENV PYTHONPATH=/usr/local/libexec/colibri
 RUN chmod +x /usr/local/bin/coli /usr/local/libexec/colibri/glm
 
 EXPOSE 8000
