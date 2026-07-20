@@ -1,0 +1,28 @@
+services:
+  colibri:
+    build: .
+    container_name: colibri
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDR}${PORT}:8000"
+    volumes:
+      - ${MODEL_DIR}:/model
+      - ${PROJECTS_DIR}:/projects:ro
+    environment:
+      - COLI_MODEL=/model
+      - COLI_API_KEY=${API_KEY}
+      - RAM_GB=${RAM_GB}
+      - CTX=${CTX}
+      - KV_SLOTS=1
+      - PIPE=1
+      - COLI_COLOR=0
+      - COLI_MODEL_ID=glm-5.2-colibri
+    deploy:
+      resources:
+        limits:
+          memory: ${RAM_LIMIT}
+          cpus: "${CPU_LIMIT}"
+    labels:
+      com.homekase.service: colibri
+      com.homekase.port: "${PORT}"
+      com.homekase.tailscale: "${TS}"

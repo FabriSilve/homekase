@@ -10,7 +10,7 @@ Inspired by [Omakub](https://github.com/basecamp/omakub).
 - **Containers**: Docker + Docker Compose per service, no shared reverse proxy
 - **Remote access**: Tailscale (MagicDNS + Serve for HTTPS on your tailnet)
 - **Firewall**: UFW with per-service open/close via `homekase open/close`
-- **Services**: Jellyfin, Immich, qBittorrent, Filebrowser, Vikunja, local AI (Ollama)
+- **Services**: Jellyfin, Immich, qBittorrent, Filebrowser, Vikunja, local AI (Ollama, Colibrí)
 - **CLI**: `homekase` — install, manage, inspect, and back up everything
 
 ## Hardware requirements
@@ -56,7 +56,7 @@ homekase add <service>         # deploy a service (interactive port + Tailscale 
 homekase remove <service>      # stop and optionally delete a service
 ```
 
-Available services: `jellyfin`, `immich`, `qbittorrent`, `filebrowser`, `vikunja`, `assistant`
+Available services: `jellyfin`, `immich`, `qbittorrent`, `filebrowser`, `vikunja`, `assistant`, `colibri`
 
 ### Firewall
 

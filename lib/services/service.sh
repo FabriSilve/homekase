@@ -16,6 +16,7 @@ SERVICES=(
   "filebrowser:Web file manager for family sharing"
   "vikunja:Task management and calendar"
   "assistant:AI assistant with chat"
+  "colibri:Local LLM inference (GLM-5.2 744B MoE)"
   "app:Server companion app"
   "navidrome:Music server (Spotify alternative)"
   "kamiyomu:Manga reader and downloader"
