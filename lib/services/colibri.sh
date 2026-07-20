@@ -7,6 +7,102 @@ COLIBRI_MIN_MODEL_GB=370
 COLIBRI_DEFAULT_RAM_GB=16
 COLIBRI_DEFAULT_CTX=32768
 
+_COLIBRI_HF_REPO="mateogrgic/GLM-5.2-colibri-int4-with-int8-mtp"
+_COLIBRI_HF_BASE="https://huggingface.co/${_COLIBRI_HF_REPO}/resolve/main"
+
+# Download the GLM-5.2 model from HuggingFace into MODEL_DIR.
+# Skips files that already exist. Returns 0 on success, 1 on failure.
+_download_colibri_model() {
+  local MODEL_DIR="$1"
+
+  if [[ -f "${MODEL_DIR}/tokenizer.json" ]]; then
+    info "Model already present in ${MODEL_DIR}."
+    return 0
+  fi
+
+  warn "Model not found. Downloading GLM-5.2 int4 (~370GB)..."
+  warn "This will take a while depending on your connection."
+  if ! ask_confirm "Download model to ${MODEL_DIR}?"; then
+    return 1
+  fi
+
+  mkdir -p "${MODEL_DIR}"
+
+  local TOTAL_SHARDS=141
+  local TOTAL_MTP=3
+  local TOTAL_FILES=$(( TOTAL_SHARDS + TOTAL_MTP + 2 ))
+  local DOWNLOADED=0
+  local FAILED=0
+  local f i
+
+  # --- Required: tokenizer + config ---
+  for f in tokenizer.json config.json; do
+    if [[ -f "${MODEL_DIR}/${f}" ]]; then
+      DOWNLOADED=$(( DOWNLOADED + 1 ))
+      continue
+    fi
+    info "  [${DOWNLOADED}/${TOTAL_FILES}] Downloading ${f}..."
+    if curl -fSL --retry 3 --retry-delay 5 -o "${MODEL_DIR}/${f}" "${_COLIBRI_HF_BASE}/${f}"; then
+      DOWNLOADED=$(( DOWNLOADED + 1 ))
+    else
+      warn "  Failed to download ${f}"
+      FAILED=$(( FAILED + 1 ))
+    fi
+  done
+
+  # --- Required: weight shards out-00000 to out-00140 ---
+  for i in $(seq 0 140); do
+    f="out-$(printf '%05d' "${i}").safetensors"
+    if [[ -f "${MODEL_DIR}/${f}" ]]; then
+      DOWNLOADED=$(( DOWNLOADED + 1 ))
+      continue
+    fi
+    info "  [${DOWNLOADED}/${TOTAL_FILES}] Downloading ${f}..."
+    if curl -fSL --retry 3 --retry-delay 5 -o "${MODEL_DIR}/${f}" "${_COLIBRI_HF_BASE}/${f}"; then
+      DOWNLOADED=$(( DOWNLOADED + 1 ))
+    else
+      warn "  Failed to download ${f}"
+      FAILED=$(( FAILED + 1 ))
+    fi
+  done
+
+  # --- Required: MTP head shards out-mtp-00000 to out-mtp-00002 ---
+  for i in $(seq 0 2); do
+    f="out-mtp-$(printf '%05d' "${i}").safetensors"
+    if [[ -f "${MODEL_DIR}/${f}" ]]; then
+      DOWNLOADED=$(( DOWNLOADED + 1 ))
+      continue
+    fi
+    info "  [${DOWNLOADED}/${TOTAL_FILES}] Downloading ${f}..."
+    if curl -fSL --retry 3 --retry-delay 5 -o "${MODEL_DIR}/${f}" "${_COLIBRI_HF_BASE}/${f}"; then
+      DOWNLOADED=$(( DOWNLOADED + 1 ))
+    else
+      warn "  Failed to download ${f}"
+      FAILED=$(( FAILED + 1 ))
+    fi
+  done
+
+  # --- Optional: generation and tokenizer config (don't abort) ---
+  for f in generation_config.json tokenizer_config.json; do
+    [[ -f "${MODEL_DIR}/${f}" ]] && continue
+    curl -fSL --retry 3 --retry-delay 5 -o "${MODEL_DIR}/${f}" "${_COLIBRI_HF_BASE}/${f}" 2>/dev/null || true
+  done
+
+  # --- Verify ---
+  if [[ ! -f "${MODEL_DIR}/tokenizer.json" ]]; then
+    error "Model download failed — tokenizer.json missing."
+    return 1
+  fi
+
+  if (( FAILED > 0 )); then
+    warn "  ${FAILED} file(s) failed to download."
+    warn "  Run 'homekase update colibri' to retry missing shards."
+  fi
+
+  ok "Model downloaded (${DOWNLOADED}/${TOTAL_FILES} files) to ${MODEL_DIR}"
+  return 0
+}
+
 # Detect if a path is on rotational storage (HDD) or not (SSD/NVMe).
 # Prints "ssd" or "hdd" to stdout.
 _detect_disk_type() {
@@ -77,6 +173,12 @@ deploy_colibri() {
       info "Cancelled."
       return 0
     fi
+  fi
+
+  # --- Download model ---
+  if ! _download_colibri_model "${MODEL_DIR}"; then
+    info "Cancelled."
+    return 0
   fi
 
   # --- Projects path ---
@@ -246,6 +348,11 @@ _update_colibri() {
   RAM_LIMIT="${RAM_LIMIT:-$(( RAM_GB + 2 ))g}"
   CPU_LIMIT="${CPU_LIMIT:-12}"
   DIRECT="${DIRECT:-0}"
+
+  # --- Download model if missing ---
+  if ! _download_colibri_model "${MODEL_DIR}"; then
+    warn "Model missing — service may not start."
+  fi
 
   mkdir -p "${DEPLOY_DIR}"
 
