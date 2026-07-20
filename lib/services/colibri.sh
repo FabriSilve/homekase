@@ -304,7 +304,9 @@ remove_colibri() {
 
   local port
   port="$(config_app_get colibri port 2>/dev/null || true)"
-  [[ -n "${port}" ]] && tailscale_serve_remove "${port}"
+  if [[ -n "${port}" && "${port}" != "null" ]]; then
+    tailscale_serve_remove "${port}"
+  fi
 
   local COLIBRI_DIR="${HOMEKASE_REPO_DIR}/services/colibri"
   if [[ -f "${COLIBRI_DIR}/docker-compose.yml" ]]; then
@@ -312,11 +314,11 @@ remove_colibri() {
   fi
 
   local DEPLOY_DIR="${HOMELAB_DIR}/colibri"
-  local MODEL_DIR PROJECTS_DIR
+  local MODEL_DIR="" PROJECTS_DIR=""
 
   if [[ -f "${DEPLOY_DIR}/.env" ]]; then
-    MODEL_DIR="$(grep '^MODEL_DIR=' "${DEPLOY_DIR}/.env" | cut -d= -f2)"
-    PROJECTS_DIR="$(grep '^PROJECTS_DIR=' "${DEPLOY_DIR}/.env" | cut -d= -f2)"
+    MODEL_DIR="$(grep '^MODEL_DIR=' "${DEPLOY_DIR}/.env" | cut -d= -f2 || true)"
+    PROJECTS_DIR="$(grep '^PROJECTS_DIR=' "${DEPLOY_DIR}/.env" | cut -d= -f2 || true)"
   fi
 
   if [[ -n "${MODEL_DIR}" && -d "${MODEL_DIR}" ]]; then
