@@ -83,6 +83,7 @@ deploy_colibri() {
   local PROJECTS_DIR
   PROJECTS_DIR="$(ask_input "Projects directory" "/storage/colibri/projects")"
   mkdir -p "${PROJECTS_DIR}"
+  chown "${SUDO_USER}:${SUDO_USER}" "${PROJECTS_DIR}"
 
   # --- RAM budget ---
   local ram_gb_suggestion free_ram_gb
