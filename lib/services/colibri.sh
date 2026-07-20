@@ -126,7 +126,8 @@ TS=${TS}"
 
   # --- Generate opencode config ---
   local SERVER_IP
-  SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  SERVER_IP="$(tailscale status --json 2>/dev/null | grep -o '"DNSName":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/\.$//' || true)"
+  [[ -z "${SERVER_IP}" ]] && SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
   [[ -z "${SERVER_IP}" ]] && SERVER_IP="localhost"
 
   mkdir -p "${DEPLOY_DIR}/config"
@@ -138,7 +139,7 @@ TS=${TS}"
       "npm": "@ai-sdk/openai-compatible",
       "name": "Colibrí (local)",
       "options": {
-        "baseURL": "http://${SERVER_IP}:${PORT}/v1",
+        "baseURL": "https://${SERVER_IP}:${PORT}/v1",
         "apiKey": "${API_KEY}"
       },
       "models": {
@@ -262,7 +263,8 @@ TS=${TS}"
 
   # Regenerate opencode config
   local SERVER_IP
-  SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  SERVER_IP="$(tailscale status --json 2>/dev/null | grep -o '"DNSName":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/\.$//' || true)"
+  [[ -z "${SERVER_IP}" ]] && SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
   [[ -z "${SERVER_IP}" ]] && SERVER_IP="localhost"
 
   mkdir -p "${DEPLOY_DIR}/config"
@@ -274,7 +276,7 @@ TS=${TS}"
       "npm": "@ai-sdk/openai-compatible",
       "name": "Colibrí (local)",
       "options": {
-        "baseURL": "http://${SERVER_IP}:${PORT}/v1",
+        "baseURL": "https://${SERVER_IP}:${PORT}/v1",
         "apiKey": "${API_KEY}"
       },
       "models": {
