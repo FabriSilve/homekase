@@ -108,6 +108,8 @@ deploy_colibri() {
   RAM_LIMIT="$(( RAM_GB + 2 ))g"
   CPU_LIMIT=12
 
+  mkdir -p "${DEPLOY_DIR}"
+
   # --- Write .env ---
   write_env_file "colibri" "PORT=${PORT}
 BIND_ADDR=${BIND_ADDR}
