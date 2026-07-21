@@ -4,8 +4,8 @@
 # Deploys from services/colibri/ within the homekase repo.
 
 COLIBRI_MIN_MODEL_GB=370
-COLIBRI_DEFAULT_RAM_GB=16
-COLIBRI_DEFAULT_CTX=32768
+COLIBRI_DEFAULT_RAM_GB=20
+COLIBRI_DEFAULT_CTX=16384
 
 _COLIBRI_HF_REPO="mateogrgic/GLM-5.2-colibri-int4-with-int8-mtp"
 _COLIBRI_HF_BASE="https://huggingface.co/${_COLIBRI_HF_REPO}/resolve/main"
