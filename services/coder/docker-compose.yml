@@ -16,6 +16,7 @@ services:
       - LLAMA_ARG_N_PARALLEL=${PARALLEL}
       - LLAMA_ARG_ENDPOINT_METRICS=1
       - LLAMA_ARG_JINJA=1
+      - LLAMA_API_KEY=${API_KEY}
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
       interval: 30s
