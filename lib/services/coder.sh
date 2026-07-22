@@ -103,6 +103,7 @@ deploy_coder() {
   fi
 
   # --- Write .env ---
+  mkdir -p "${HOMELAB_DIR}/coder"
   write_env_file "coder" "PORT=${PORT}
 BIND_ADDR=${BIND_ADDR}
 MODEL_DIR=${MODEL_DIR}
