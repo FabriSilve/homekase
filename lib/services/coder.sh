@@ -149,11 +149,11 @@ EOCONFIG
   # --- Start ---
   info "Pulling latest llama.cpp server image..."
   docker compose -f "${CODER_DIR}/docker-compose.yml" \
-    --env-file "${DATA_DIR}/.env" pull
+    --env-file "${HOMELAB_DIR}/coder/.env" pull
 
   info "Starting coder..."
   docker compose -f "${CODER_DIR}/docker-compose.yml" \
-    --env-file "${DATA_DIR}/.env" up -d
+    --env-file "${HOMELAB_DIR}/coder/.env" up -d
 
   ok "Coder is running on port ${PORT}"
   echo
