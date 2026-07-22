@@ -74,6 +74,7 @@ _status_collect_services() {
   _svc_running=()
   _svc_url=()
   _svc_exposed=()
+  _svc_orphaned=()
 
   local ts_hostname
   ts_hostname="$(config_get 'tailscale.hostname' 2>/dev/null || true)"
@@ -89,11 +90,17 @@ _status_collect_services() {
   while IFS= read -r cname; do
     [[ -z "${cname}" ]] && continue
 
-    local svc port ts_flag running url
+    local svc port ts_flag running url orphaned
     svc="$(docker inspect "${cname}" --format '{{index .Config.Labels "com.homekase.service"}}' 2>/dev/null || true)"
     port="$(docker inspect "${cname}" --format '{{index .Config.Labels "com.homekase.port"}}' 2>/dev/null || true)"
     ts_flag="$(docker inspect "${cname}" --format '{{index .Config.Labels "com.homekase.tailscale"}}' 2>/dev/null || true)"
     running="$(docker inspect "${cname}" --format '{{.State.Running}}' 2>/dev/null || true)"
+
+    # Check if service is in config — orphan if not
+    orphaned="false"
+    if ! config_app_installed "${svc}" 2>/dev/null; then
+      orphaned="true"
+    fi
 
     url="null"
     if [[ "${ts_flag}" == "true" && -n "${ts_hostname}" && "${ts_hostname}" != "null" && -n "${port}" ]]; then
@@ -108,6 +115,7 @@ _status_collect_services() {
     _svc_running+=("${running}")
     _svc_url+=("${url}")
     _svc_exposed+=("${exposed}")
+    _svc_orphaned+=("${orphaned}")
   done <<< "${containers}"
 }
 
@@ -140,7 +148,7 @@ cmd_status() {
 
     local svc_json="[]"
     for i in "${!_svc_name[@]}"; do
-      local url_val running_bool port_int exposed_bool
+      local url_val running_bool port_int exposed_bool orphaned_bool
       if [[ "${_svc_url[${i}]}" == "null" ]]; then
         url_val="null"
       else
@@ -150,15 +158,18 @@ cmd_status() {
       [[ "${_svc_running[${i}]}" == "true" ]] && running_bool="true"
       exposed_bool="false"
       [[ "${_svc_exposed[${i}]}" == "true" ]] && exposed_bool="true"
+      orphaned_bool="false"
+      [[ "${_svc_orphaned[${i}]}" == "true" ]] && orphaned_bool="true"
       port_int="${_svc_port[${i}]:-0}"
       svc_json="$(jq -n \
-        --argjson arr     "${svc_json}" \
-        --arg  name       "${_svc_name[${i}]}" \
-        --argjson port    "${port_int:-0}" \
-        --argjson run     "${running_bool}" \
-        --argjson url     "${url_val}" \
-        --argjson exposed "${exposed_bool}" \
-        '$arr + [{"name":$name,"port":$port,"running":$run,"url":$url,"exposed":$exposed}]')"
+        --argjson arr      "${svc_json}" \
+        --arg  name        "${_svc_name[${i}]}" \
+        --argjson port     "${port_int:-0}" \
+        --argjson run      "${running_bool}" \
+        --argjson url      "${url_val}" \
+        --argjson exposed  "${exposed_bool}" \
+        --argjson orphaned "${orphaned_bool}" \
+        '$arr + [{"name":$name,"port":$port,"running":$run,"url":$url,"exposed":$exposed,"orphaned":$orphaned}]')"
     done
 
     jq -n \
@@ -214,7 +225,10 @@ cmd_status() {
     local i
     for i in "${!_svc_name[@]}"; do
       local sym status_word url_part exposed_disp
-      if [[ "${_svc_running[${i}]}" == "true" ]]; then
+      if [[ "${_svc_orphaned[${i}]}" == "true" ]]; then
+        sym="${YELLOW}⚠${RESET}"
+        status_word="orphaned"
+      elif [[ "${_svc_running[${i}]}" == "true" ]]; then
         sym="${GREEN}●${RESET}"
         status_word="running"
       else
@@ -227,7 +241,11 @@ cmd_status() {
         exposed_disp="-"
       fi
       url_part=""
-      [[ "${_svc_url[${i}]}" != "null" && -n "${_svc_url[${i}]}" ]] && url_part="   ${_svc_url[${i}]}"
+      if [[ "${_svc_orphaned[${i}]}" == "true" ]]; then
+        url_part="   (container exists, not in config)"
+      elif [[ "${_svc_url[${i}]}" != "null" && -n "${_svc_url[${i}]}" ]]; then
+        url_part="   ${_svc_url[${i}]}"
+      fi
       printf "  %-14s %b %-10s %-9s :%s%s\n" \
         "${_svc_name[${i}]}" "${sym}" "${status_word}" "${exposed_disp}" "${_svc_port[${i}]}" "${url_part}"
     done

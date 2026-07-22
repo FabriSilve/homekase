@@ -127,7 +127,25 @@ start_service() {
   docker compose -f "${HOMELAB_DIR}/${name}/docker-compose.yml" up -d
 }
 
-# Stops a service via Docker Compose.
+# Force-stops a container by its homekase service label.
+# Usage: force_stop_container <service_name>
+force_stop_container() {
+  local name="$1"
+  local containers
+  containers="$(docker ps -a \
+    --filter "label=com.homekase.service=${name}" \
+    --format '{{.Names}}' 2>/dev/null || true)"
+  [[ -z "${containers}" ]] && return 0
+
+  local cname
+  while IFS= read -r cname; do
+    [[ -z "${cname}" ]] && continue
+    docker stop "${cname}" 2>/dev/null || true
+    docker rm "${cname}" 2>/dev/null || true
+  done <<< "${containers}"
+}
+
+# Stops a service via Docker Compose, with fallback to direct container removal.
 stop_service() {
   local name="$1"
   local repo_dir="${HOMEKASE_REPO_DIR}/services/${name}"
@@ -135,6 +153,16 @@ stop_service() {
     docker compose -f "${repo_dir}/docker-compose.yml" down 2>/dev/null || true
   fi
   docker compose -f "${HOMELAB_DIR}/${name}/docker-compose.yml" down 2>/dev/null || true
+
+  # Fallback: if container still exists, force-remove it
+  local remaining
+  remaining="$(docker ps -a \
+    --filter "label=com.homekase.service=${name}" \
+    --format '{{.Names}}' 2>/dev/null || true)"
+  if [[ -n "${remaining}" ]]; then
+    warn "Compose down incomplete — force-removing orphaned container(s)..."
+    force_stop_container "${name}"
+  fi
 }
 
 # Stops a service and optionally removes its directory.
