@@ -155,6 +155,12 @@ EOCONFIG
   docker compose -f "${CODER_DIR}/docker-compose.yml" \
     --env-file "${HOMELAB_DIR}/coder/.env" up -d
 
+  # --- Register in config ---
+  config_app_set coder installed true
+  config_app_set coder port      "${PORT}"
+  config_app_set coder tailscale "${TS}"
+  config_app_set coder data_dir  "${DATA_DIR}"
+
   ok "Coder is running on port ${PORT}"
   echo
   info "API endpoint: ${SERVICE_URL}/v1"
@@ -211,7 +217,7 @@ remove_coder() {
       tailscale_serve_remove "${PORT}"
     fi
 
-    config_remove 'apps.coder'
+    config_app_remove coder
     ok "Coder stopped."
   else
     warn "No .env found — container may already be removed."
