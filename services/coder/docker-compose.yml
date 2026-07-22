@@ -1,0 +1,31 @@
+services:
+  coder:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: homekase-coder
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDR}${PORT}:8080"
+    volumes:
+      - ${MODEL_DIR}:/models:ro
+    environment:
+      - LLAMA_ARG_MODEL=/models/${MODEL_FILE}
+      - LLAMA_ARG_PORT=8080
+      - LLAMA_ARG_HOST=0.0.0.0
+      - LLAMA_ARG_CTX_SIZE=${CTX}
+      - LLAMA_ARG_N_THREADS=${THREADS}
+      - LLAMA_ARG_N_PARALLEL=${PARALLEL}
+      - LLAMA_ARG_ENDPOINT_METRICS=1
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: ${RAM_LIMIT}
+    labels:
+      com.homekase.service: coder
+      com.homekase.port: "${PORT}"
+      com.homekase.tailscale: "${TS}"

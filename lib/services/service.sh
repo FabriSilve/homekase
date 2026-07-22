@@ -17,6 +17,7 @@ SERVICES=(
   "vikunja:Task management and calendar"
   "assistant:AI assistant with chat"
   "colibri:Local LLM inference (GLM-5.2 744B MoE)"
+  "coder:Local coding LLM (Qwen2.5-Coder 7B)"
   "app:Server companion app"
   "navidrome:Music server (Spotify alternative)"
   "kamiyomu:Manga reader and downloader"
